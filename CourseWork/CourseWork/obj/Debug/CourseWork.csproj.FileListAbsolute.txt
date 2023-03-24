@@ -1,0 +1,12 @@
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\bin\Debug\CourseWork.exe.config
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\bin\Debug\CourseWork.exe
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\bin\Debug\CourseWork.pdb
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.csproj.AssemblyReference.cache
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.MainForm.resources
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.Properties.Resources.resources
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.csproj.GenerateResource.cache
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.csproj.CoreCompileInputs.cache
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.exe
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.pdb
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.InputForm.resources
+C:\Users\Sofja\Desktop\Методы оптимизации курсовая\CourseWork\CourseWork\obj\Debug\CourseWork.SimplexMethodSolution.resources
