@@ -1,4 +1,4 @@
-﻿//#include <vector>
+//#include <vector>
 
 using System;
 using System.Collections.Generic;
@@ -230,8 +230,8 @@ namespace CourseWork
 
             buttonSolve.Click += (sender, eventArgs) =>
             {
-                bool textBoxesFilled = this.Controls.OfType<TextBox>().All(textBox => textBox.Text == "");
-                bool comboBoxesFilled = this.Controls.OfType<ComboBox>().All(comboBox => comboBox.SelectedText.Length == 0);
+                bool textBoxesFilled = this.Controls.OfType<TextBox>().Any(textBox => textBox.Text == "");
+                bool comboBoxesFilled = this.Controls.OfType<ComboBox>().Any(comboBox => comboBox.SelectedIndex == -1);
 
                 if (textBoxesFilled || comboBoxesFilled) 
                 {
