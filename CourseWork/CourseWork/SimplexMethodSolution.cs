@@ -17,109 +17,58 @@ namespace CourseWork
             InitializeComponent();
         }
 
-        List<List<double>> solution;
+        List<List<double>> solution = new List<List<double>>();
 
         List<List<double>> SimplexMethod(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
             List<double> limitFreeValues, List<int> sign, bool max)
         {
-            List<double> basicValues = new List<double>();
-            List<double> basicValuesIndexes = new List<double>();
-            List<double> functionT= new List<double>(); 
+            //List<double> basicValues = new List<double>();
+            List<int> basicValuesIndexes = new List<int>();
+            List<double> functionT= new List<double>();
 
+            double ResultFunctionT = 0;
+            double ResultFunctionF = 0;
             double resolvingElement; 
             int colIndex;  
-            int rowIndex; 
+            int rowIndex;
+            int colsBeforeAdding = cols;
 
-
-            //добавление дополнительных переменных, если есть неравенства
+            //добавление доп переменных, если есть неравенства
             for (int i = 0; i < rows; i++)
             {
-                List<double> limitValues1 = new List<double>();
                 if (sign[i] == 0) // ">="
                 {
-                    limitValues1.Add(-1.0);
-                    limitValues.Add(limitValues1);
-                    limitValues1.Clear();
-                    
-                    int k = i;
-                    for(int g = 0; g < k; g++)
+                    for (int j = 0; j < rows; j++)
                     {
-                        limitValues1.Add(0);
-                        limitValues.Add(limitValues1);
-                        limitValues1.Clear();
-                    }
-                    for (int g = k + 1; g < rows; g++)
-                    {
-                        limitValues1.Add(0);
-                        limitValues.Add(limitValues1);
-                        limitValues1.Clear();
+                        if (j == i)
+                            limitValues[i].Add(-1);
+                        else
+                            limitValues[i].Add(0);
                     }
                     cols++;
                 }
-            }
+            } 
 
             //добавление доп переменных для двухэтапного метода
             for (int i = 0; i < rows; i++)
             {
-                List<double> limitValues1 = new List<double>();
-                limitValues1.Add(1.0);
-                limitValues.Add(limitValues1);
-                limitValues1.Clear();
-
-                int k = i;
-                for (int g = 0; g < k; g++)
+                for (int j = 0; j < rows; j++)
                 {
-                    limitValues1.Add(0);
-                    limitValues.Add(limitValues1);
-                    limitValues1.Clear();
+                    if (j == i)
+                        limitValues[i].Add(1);
+                    else
+                        limitValues[i].Add(0);
                 }
-                for (int g = k + 1; g < rows; g++)
-                {
-                    limitValues1.Add(0);
-                    limitValues.Add(limitValues1);
-                    limitValues1.Clear();
-                }
+                basicValuesIndexes.Add(cols);  //запомнить индексы базисных переменных
                 cols++;
             }
 
-            //базисные переменные
-            for (int j = 0; j < cols; j++)
-            {
-                int counter = 0;
-                for (int i = 0; i < rows; i++)
-                {
-                    if (limitValues[i][j] == 0)
-                        counter += 1;
-                }
-                for (int i = 0; i < rows; i++)
-                {
-                    if ((i == j) && (limitValues[i][j] == 1) && (counter == rows - 1))
-                    {
-                        basicValues.Add(limitValues[i][j]);
-                    }
-                }
-            }
-
-            //запомнить индексы базисных переменных //?
-            //basicValuesIndexes
-
-            //БАЗИСНЫМИ ПЕРЕМЕННЫМИ ДОЛЖНЫ БЫТЬ ВВЕДЕННЫЕ ДОП ПЕРЕМЕННЫЕ !!
-            // if(basicValues.Count() != rows) error;
 
             // ИОР
             List<List<double>> solvingMatrix = new List<List<double>>(); //для пересчета таблицы
-            for(int i = 0; i < rows; i++)
-            {
-                List<double> sMatrix = new List<double>();
-                for (int j = 0; j < cols; j++)
-                {
-                    sMatrix.Add(0);
-                }
-                solvingMatrix.Add(sMatrix);
-            }
 
             double sum = 0;
-            for (int j = 0; j < cols; j++) //функция T
+            for (int j = 0; j < colsBeforeAdding; j++) //функция T
             {
                 for (int i = 0; i < rows; i++)
                 {
@@ -128,10 +77,23 @@ namespace CourseWork
                 functionT.Add(sum);
                 sum = 0;
             }
-            double valFunctionT = 0;
-            for(int i = 0; i < rows; i++)
+            for (int j = colsBeforeAdding; j < cols; j++) 
             {
-                valFunctionT += limitFreeValues[i];
+                functionT.Add(0);
+            }
+            for (int i = 0; i < rows; i++)
+            {
+                ResultFunctionT += limitFreeValues[i];
+            }
+
+
+            for (int i = 0; i < colsBeforeAdding; i++) //исходную функцию *(-1)
+            {
+                functionValues[i] *= -1;
+            }
+            for (int i = colsBeforeAdding; i < cols; i++) 
+            {
+                functionValues.Add(0);
             }
 
 
@@ -162,11 +124,6 @@ namespace CourseWork
 
             while (!optimum) 
             {
-                for(int i = 0; i < cols; i++) //исходную функцию *(-1)
-                {
-                    functionValues[i] *= -1;
-                }
-
                 //разрешающий элемент
                 List<double> rowElement = new List<double>();
                 if (max)
@@ -174,7 +131,10 @@ namespace CourseWork
                     colIndex = functionT.IndexOf(functionT.Min());
                     for (int i = 0; i < rows; i++)
                     {
-                        rowElement.Add(limitFreeValues[i] / limitValues[i][colIndex]);
+                        if (limitValues[i][colIndex] > 0)
+                            rowElement.Add(limitFreeValues[i] / limitValues[i][colIndex]);
+                        else
+                            rowElement.Add(-1);
                     }
                     rowIndex = rowElement.IndexOf(rowElement.Max());
                     resolvingElement = limitValues[rowIndex][colIndex];
@@ -184,117 +144,136 @@ namespace CourseWork
                     colIndex = functionT.IndexOf(functionT.Max());
                     for(int i = 0; i < rows; i++)
                     {
-                        rowElement.Add(limitFreeValues[i] / limitValues[i][colIndex]);
+                        if (limitValues[i][colIndex] > 0) //!!!!!
+                            rowElement.Add(limitFreeValues[i] / limitValues[i][colIndex]);
+                        else
+                            rowElement.Add(100000);
                     }
                     rowIndex = rowElement.IndexOf(rowElement.Min());
                     resolvingElement = limitValues[rowIndex][colIndex];
                 }
-                //ПРОВЕРКА, ЧТО ЭЛЕМЕНТ НЕ ОТРИЦАТЕЛЬНЫЙ!!!!!
+
+                basicValuesIndexes[rowIndex] = colIndex;
 
 
-                //remove element with rowIndex
-                basicValues.Add(resolvingElement); //переменную разрешающего стролбца включаем в базис 
-
-
-                for(int i = 0; i < cols; i++) //делим разрешающую строку на разрешающий элемент
+                //делим разрешающую строку на разрешающий элемент
+                for (int i = 0; i < cols; i++) 
                 {
                     limitValues[rowIndex][i] /= resolvingElement;
                 }
-                limitFreeValues[rowIndex] /= resolvingElement;
 
-                for (int i = 0; i < rows; i++)  //разрешающий столбец "зануляем"
+                //разрешающий столбец "зануляем"
+                for (int i = 0; i < rows; i++)  
                 {
-                    if(i==colIndex)
+                    if(i == rowIndex)
                         limitValues[i][colIndex] = 1;
                     else
                         limitValues[i][colIndex] = 0;
                 }
 
-                /*
-                for (int i = 0; i < rowIndex; i++) //пересчитываем симплекс-таблицу
+                //пересчитываем симплекс-таблицу
+                for (int i = 0; i < rows; i++) 
                 {
-                    List<double> solution = new List<double>();
-                    for (int j = 0; j < colIndex; j++)
-                    {
-                        solution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j] / resolvingElement);
-                    }
-                    solvingMatrix.Add(solution);
-                }
-                //разрешающий столбец и строка? //add
-                for (int i = rowIndex + 1; i < rows; i++) 
-                {
-                    List<double> solution = new List<double>();
-                    for (int j = colIndex + 1; j < cols; j++)
-                    {
-                        solution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j] / resolvingElement);
-                    }
-                    solvingMatrix.Add(solution);
-                }*/
-
-                for (int i = 0; i < rows; i++) //пересчитываем симплекс-таблицу
-                {
-                    List<double> solution = new List<double>();
+                    List<double> rowSolution = new List<double>();
                     for (int j = 0; j < cols; j++)
                     {
-                        if (i == rowIndex && j == colIndex)
+                        if (i == rowIndex || j == colIndex)
                         {
-                            solution.Add(limitValues[i][j]);
+                            rowSolution.Add(limitValues[i][j]);
                         }
                         else
-                            solution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j] / resolvingElement);
+                            rowSolution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j] / resolvingElement);
                     }
-                    solvingMatrix.Add(solution);
+                    solvingMatrix.Add(rowSolution);
                 }
 
 
-                for (int i = 0; i < rowIndex; i++) //пересчитываем значения свободных членов
+                //пересчитываем значения свободных членов
+                for (int i = 0; i < rows; i++) 
                 {
-                    for (int j = 0; j < colIndex; j++)
-                    {
-
-                    }
+                    if (i == rowIndex)
+                        limitFreeValues[i] /= resolvingElement;
+                    else
+                        limitFreeValues[i] -= limitValues[i][colIndex] * limitFreeValues[rowIndex] / resolvingElement;
                 }
-                //разрешающий столбец и строка? //add
-                for (int i = rowIndex + 1; i < rows; i++)
+
+
+                //пересчитываем значение функции T
+                ResultFunctionT -= limitFreeValues[rowIndex] * functionT[colIndex] / resolvingElement;
+                for (int i = 0; i < cols; i++) 
                 {
-                    for (int j = colIndex + 1; j < cols; j++)
-                    {
-                    }
+                    if (i != colIndex)
+                        functionT[i] -= limitValues[rowIndex][i] * functionT[colIndex] / resolvingElement;
                 }
+                functionT[colIndex] = 0;
 
-                //пересчитываем значение функции
+
+                //пересчитываем значение функции f
+                ResultFunctionF -= limitFreeValues[rowIndex] * functionValues[colIndex] / resolvingElement;
+                for (int i = 0; i < cols; i++) 
+                {
+                    if (i != colIndex)
+                        functionValues[i] -= limitValues[rowIndex][i] * functionValues[colIndex] / resolvingElement;
+                }
+                functionValues[colIndex] = 0;
 
 
                 //проверяем план на оптимальность
                 optimum = true;
-                if (max) //проверка на оптимальность для max
+                for (int i = 0; i < cols; i++)
                 {
-                    for (int i = 0; i < cols; i++)
+                    if (functionT[i] != 0 && ResultFunctionT != 0)
                     {
-                        if (functionT[i] < 0)
-                        {
-                            optimum = false;
-                            break;
-                        }
+                        optimum = false;
+                        break;
                     }
                 }
-                else //проверка на оптимальность для mim
-                {
-                    for (int i = 0; i < cols; i++)
-                    {
-                        if (functionT[i] > 0)
-                        {
-                            optimum = false;
-                            break;
-                        }
-                    }
-                }
+
+                limitValues.Clear();
+                limitValues = solvingMatrix;
             }
 
-            // solution = basicValues + limitFreeValues +  solvingMatrix + valFunctionT + functionT
+            // basicValuesIndexes - индексы базисных переменных
+            // limitFreeValues - свободные члены (значения базисных переменных)
+            // limitValues - симплекс-таблица
+            // functionT, valFunctionT - значения функции Т
+            // functionValues - значения функции f
+
+            //??
+            List<double> col = new List<double>();
+            for (int i = 0; i < rows; i++)
+            {
+                col.Add(basicValuesIndexes[i] + 1);
+            }
+            col.Add(0);
+            col.Add(0);
+            solution.Add(col);
+
+            List<double> col1 = new List<double>();
+            for (int i = 0; i < rows; i++)
+            {
+                col1.Add(limitFreeValues[i]);
+            }
+            col1.Add(ResultFunctionT);
+            col1.Add(ResultFunctionF);
+            solution.Add(col1);
+
+            for (int i = 0; i < cols; i++)
+            {
+                List<double> col2 = new List<double>();
+                for (int j = 0; j < rows; j++)
+                {
+                    col2.Add(limitValues[j][i]);
+                }
+                col2.Add(functionT[i]);
+                col2.Add(functionValues[i]);
+                solution.Add(col2);
+            }
 
             return solution;
         }
+
+
 
         internal SimplexMethodSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues, 
             List<double> limitFreeValues, List<int> sign, bool max) 
@@ -304,8 +283,9 @@ namespace CourseWork
 
             RichTextBox richTextBox1 = new RichTextBox();
             richTextBox1.Location = new Point(10, 10);
-            richTextBox1.Size = new Size(800, 600);
+            richTextBox1.Size = new Size(600, 400);
             richTextBox1.Font = new Font("Microsoft Sans Serif", 11);
+            richTextBox1.ReadOnly = true;
 
             richTextBox1.Text += "Целевая функция: \r\n";
             for (int j = 0; j < cols; j++)
@@ -320,13 +300,13 @@ namespace CourseWork
                     }
                 }
             }
+            if (max) 
+                richTextBox1.Text += " --> max \r\n";
+            else 
+                richTextBox1.Text += " --> min \r\n";
+
+
             richTextBox1.Text += "\r\n";
-
-            richTextBox1.Text += "Направление экстремума: ";
-            if (max) richTextBox1.Text += "max \r\n";
-            else richTextBox1.Text += "min \r\n";
-
-
             richTextBox1.Text += "Ограничения: \r\n";
             num = 0;
             for (int i = 0; i < rows; i++)
@@ -351,8 +331,48 @@ namespace CourseWork
                 
                 richTextBox1.Text += limitFreeValues[i].ToString() + "\r\n";
             }
+            
+            richTextBox1.Text += "\r\n";
+            richTextBox1.Text += "РЕШЕНИЕ: \r\n";
+            solution = SimplexMethod(cols, rows, functionValues, limitValues, limitFreeValues, sign, max);
+            cols = solution[0].Count();
+            rows = solution.Count();
 
+            DataGridView DGV = new DataGridView();
+            DGV.Font = new Font("Microsoft Sans Serif", 11);
+            DGV.Location = new Point(10, richTextBox1.Height + 20);
+            DGV.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            DGV.ReadOnly = true;
+            DGV.ColumnCount = rows;
+            DGV.RowCount = cols;
+
+            DGV.Columns[0].HeaderText = "Базис";
+            DGV.Columns[1].HeaderText = "Св. чл.";
+            int k = 1;
+            for (int i = 2; i < rows; i++)
+            {
+                DGV.Columns[i].HeaderText = "X" + k.ToString();
+                k++;
+            }
+
+            for(int i = 1; i < cols - 3; i++)
+            {
+                DGV.Rows[i].HeaderCell.Value = "X";
+            }
+            DGV.Rows[cols - 3].HeaderCell.Value = "T";
+            DGV.Rows[cols - 2].HeaderCell.Value = "F";
+
+            for (int i = 0; i < cols; i++)
+            {
+                for (int j = 0; j < rows; j++)
+                {
+                    DGV.Rows[i].Cells[j].Value = solution[j][i].ToString();
+                }
+            }
+
+            //richTextBox1.Text += DGV;
             this.Controls.Add(richTextBox1);
+            this.Controls.Add(DGV);
         }
 
     }
