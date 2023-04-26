@@ -24,13 +24,15 @@ namespace CourseWork
         {
             for (int i = 0; i < cols; i++)
             {
-                if (functionValues[i] > 0)
+                double num = functionValues[i];
+                if (Math.Round(num, 6) > 0) 
                 {
                     return false;
                 }
             }
             return true;
         }
+
 
         int findRowIndex(List<List<double>> limitValues, List<double> limitFreeValues, int rows, int colIndex)
         {
@@ -44,7 +46,7 @@ namespace CourseWork
                 }
             }
 
-            if (rowIndex != rows - 1)
+            if (rowIndex != rows - 1 && rowIndex != -1)
             {
                 for (int i = rowIndex + 1; i < rows; i++)
                 {
@@ -58,17 +60,162 @@ namespace CourseWork
             return rowIndex;
         }
 
+
+        List<List<double>> MakeSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
+            List<double> limitFreeValues, List<int> basicValuesIndexes, List<double> functionT,
+            double ResultFunctionT, double ResultFunctionF, bool max)
+        {
+            List<double> col = new List<double>();
+            for (int i = 0; i < rows; i++)
+            {
+                col.Add(basicValuesIndexes[i] + 1);
+            }
+            col.Add(0);
+            col.Add(0);
+            solution.Add(col);
+
+            List<double> col1 = new List<double>();
+            col1.AddRange(limitFreeValues);
+            col1.Add(ResultFunctionT);
+            if (max)
+                col1.Add(-ResultFunctionF);
+            else
+                col1.Add(ResultFunctionF);
+            col1.Add(ResultFunctionF);
+            solution.Add(col1);
+
+            for (int i = 0; i < cols; i++)
+            {
+                List<double> col2 = new List<double>();
+                for (int j = 0; j < rows; j++)
+                {
+                    col2.Add(limitValues[j][i]);
+                }
+                col2.Add(functionT[i]);
+                if (max)
+                    col2.Add(-functionValues[i]);
+                else
+                    col2.Add(functionValues[i]);
+                col2.Add(functionValues[i]);
+                solution.Add(col2);
+            }
+
+            return solution;
+        }
+
+
+        List<List<double>> SimplexSolve(int cols, int rows, 
+            List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes, List<double> functionT,
+            double ResultFunctionT, int colsBeforeAdding,
+            bool max, bool optimum, bool func)
+        {
+            double ResultFunctionF = 0;
+            double resolvingElement;
+            int colIndex;
+            int rowIndex;
+
+            while (!optimum)
+            {
+                if (func)
+                    colIndex = functionT.IndexOf(functionT.Max());
+                else
+                    colIndex = functionValues.IndexOf(functionValues.Max());
+
+                rowIndex = findRowIndex(limitValues, limitFreeValues, rows, colIndex);
+                if (rowIndex == -1)
+                    return solution;
+
+                resolvingElement = limitValues[rowIndex][colIndex];
+                basicValuesIndexes[rowIndex] = colIndex;
+
+                //пересчитываем значение функции T
+                ResultFunctionT -= limitFreeValues[rowIndex] * functionT[colIndex] / resolvingElement;
+                for (int i = 0; i < cols; i++)
+                {
+                    if (i != colIndex)
+                        functionT[i] -= limitValues[rowIndex][i] * functionT[colIndex] / resolvingElement;
+                }
+                functionT[colIndex] = 0;
+
+
+                //пересчитываем значение функции f
+                ResultFunctionF -= limitFreeValues[rowIndex] * functionValues[colIndex] / resolvingElement;
+                for (int i = 0; i < cols; i++)
+                {
+                    if (i != colIndex)
+                        functionValues[i] -= limitValues[rowIndex][i] * functionValues[colIndex] / resolvingElement;
+                }
+                functionValues[colIndex] = 0;
+
+
+                //пересчитываем значения свободных членов
+                for (int i = 0; i < rows; i++)
+                {
+                    if (i != rowIndex)
+                        limitFreeValues[i] -= limitValues[i][colIndex] * limitFreeValues[rowIndex] / resolvingElement;
+                }
+                limitFreeValues[rowIndex] /= resolvingElement;
+
+
+                //пересчитываем симплекс-таблицу
+                List<List<double>> solvingMatrix = new List<List<double>>();
+
+                for (int i = 0; i < cols; i++)
+                {
+                    limitValues[rowIndex][i] /= resolvingElement;
+                }
+                for (int i = 0; i < rows; i++)
+                {
+                    List<double> rowSolution = new List<double>();
+                    for (int j = 0; j < cols; j++)
+                    {
+                        if (i == rowIndex)
+                        {
+                            rowSolution.Add(limitValues[i][j]);
+                        }
+                        else
+                            rowSolution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j]);
+                    }
+                    solvingMatrix.Add(rowSolution);
+                }
+
+                limitValues.Clear();
+                for (int i = 0; i < rows; i++)
+                {
+                    List<double> iteration = new List<double>();
+                    iteration.AddRange(solvingMatrix[i]);
+                    limitValues.Add(iteration);
+                }
+                solvingMatrix.Clear();
+
+                //проверяем план на оптимальность
+                if (func)
+                    optimum = isOptimum(functionT, colsBeforeAdding);
+                else
+                    optimum = isOptimum(functionValues, colsBeforeAdding);
+            }
+
+            for (int i = 0; i < colsBeforeAdding; i++)
+            {
+                if (functionValues[i] > 0)
+                {
+                    if (findRowIndex(limitValues, limitFreeValues, rows, i) == -1)
+                        return solution;
+                }
+            }
+            
+            return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, ResultFunctionF, max);
+        }
+
+
         List<List<double>> SimplexMethod(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
             List<double> limitFreeValues, List<int> sign, bool max)
         {
             List<int> basicValuesIndexes = new List<int>();
-            List<double> functionT= new List<double>();
+            List<double> functionT = new List<double>();
 
             double ResultFunctionT = 0;
             double ResultFunctionF = 0;
-            double resolvingElement; 
-            int colIndex;  
-            int rowIndex;
             int colsBeforeAdding;
 
             //добавление доп переменных, если есть неравенства
@@ -138,137 +285,34 @@ namespace CourseWork
                 ResultFunctionT += limitFreeValues[i];
             }
 
-            if(max) //max
+            if (!max)
             {
-                for (int i = 0; i < cols; i++) //исходную функцию *(-1)
+                for (int i = 0; i < cols; i++) 
                 {
                     functionValues[i] *= -1;
                 }
             }
-            
-            bool optimum = isOptimum(functionT, colsBeforeAdding);
 
+            bool func = true;
+            if (colsBeforeAdding <= rows)
+                func = false;
 
-            while (!optimum) 
-            {
-                //if (max)
-                //    colIndex = functionValues.IndexOf(functionValues.Min());
-                //else
-                //    colIndex = functionT.IndexOf(functionT.Max());
-
-                colIndex = functionValues.IndexOf(functionValues.Min());
-                rowIndex = findRowIndex(limitValues, limitFreeValues, rows, colIndex);
-                if (rowIndex == -1)
-                    return solution;
-
-                resolvingElement = limitValues[rowIndex][colIndex];
-                basicValuesIndexes[rowIndex] = colIndex;
-
-                //пересчитываем значение функции T
-                ResultFunctionT -= limitFreeValues[rowIndex] * functionT[colIndex] / resolvingElement;
-                for (int i = 0; i < cols; i++) 
-                {
-                    if (i != colIndex)
-                        functionT[i] -= limitValues[rowIndex][i] * functionT[colIndex] / resolvingElement;
-                }
-                functionT[colIndex] = 0;
-
-
-                //пересчитываем значение функции f
-                ResultFunctionF -= limitFreeValues[rowIndex] * functionValues[colIndex] / resolvingElement;
-                for (int i = 0; i < cols; i++) 
-                {
-                    if (i != colIndex)
-                        functionValues[i] -= limitValues[rowIndex][i] * functionValues[colIndex] / resolvingElement;
-                }
-                functionValues[colIndex] = 0;
-
-
-                //пересчитываем значения свободных членов
-                for (int i = 0; i < rows; i++)
-                {
-                    if (i != rowIndex)
-                        limitFreeValues[i] -= limitValues[i][colIndex] * limitFreeValues[rowIndex] / resolvingElement;
-                }
-                limitFreeValues[rowIndex] /= resolvingElement;
-
-
-                //пересчитываем симплекс-таблицу
-                List<List<double>> solvingMatrix = new List<List<double>>();
-                //делим разрешающую строку на разрешающий элемент
-                for (int i = 0; i < cols; i++)
-                {
-                    limitValues[rowIndex][i] /= resolvingElement;
-                }
-                //пересчитываем симплекс-таблицу
-                for (int i = 0; i < rows; i++)
-                {
-                    List<double> rowSolution = new List<double>();
-                    for (int j = 0; j < cols; j++)
-                    {
-                        if (i == rowIndex)
-                        {
-                            rowSolution.Add(limitValues[i][j]);
-                        }
-                        else
-                            rowSolution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j]); 
-                    }
-                    solvingMatrix.Add(rowSolution);
-                }
-                
-                limitValues.Clear();
-                for (int i = 0; i < rows; i++)
-                {
-                    List<double> iteration = new List<double>();
-                    iteration.AddRange(solvingMatrix[i]);
-                    limitValues.Add(iteration);
-                }
-                solvingMatrix.Clear();
-
-                //проверяем план на оптимальность
+            bool optimum = true;
+            if (func)
                 optimum = isOptimum(functionT, colsBeforeAdding);
-            }
-
-
-
-            List<double> col = new List<double>();
-            for (int i = 0; i < rows; i++)
-            {
-                col.Add(basicValuesIndexes[i] + 1);
-            }
-            col.Add(0);
-            col.Add(0);
-            solution.Add(col);
-
-            List<double> col1 = new List<double>();
-            col1.AddRange(limitFreeValues);
-            col1.Add(ResultFunctionT);
-            if (!max)
-                col1.Add(-ResultFunctionF);
             else
-                col1.Add(ResultFunctionF);
-            col1.Add(ResultFunctionF);
-            solution.Add(col1);
+                optimum = isOptimum(functionValues, colsBeforeAdding);
 
-            for (int i = 0; i < cols; i++)
-            {
-                List<double> col2 = new List<double>();
-                for (int j = 0; j < rows; j++)
-                {
-                    col2.Add(limitValues[j][i]);
-                }
-                col2.Add(functionT[i]);
-                if (!max)
-                    col2.Add(-functionValues[i]);
-                else
-                    col2.Add(functionValues[i]);
-                col2.Add(functionValues[i]);
-                solution.Add(col2);
-            }
+
+            if (!optimum)
+                solution = SimplexSolve(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, 
+                    ResultFunctionT, colsBeforeAdding, max, optimum, func);
+            else
+                solution = MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, 
+                    ResultFunctionT, ResultFunctionF, max);
 
             return solution;
         }
-
 
 
         internal SimplexMethodSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues, 
@@ -402,7 +446,7 @@ namespace CourseWork
                     {
                         if (i < cols - 2 && j == 0)
                         {
-                            DGV.Rows[i].Cells[j].Value = "X" + Math.Round(solution[j][i], 2).ToString();
+                            DGV.Rows[i].Cells[j].Value = "X" + Math.Round(solution[j][i], 3).ToString();
                         }
                         else if (i == cols - 2 && j == 0)
                         {
