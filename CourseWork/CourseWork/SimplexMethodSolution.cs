@@ -104,6 +104,94 @@ namespace CourseWork
         }
 
 
+        List<List<double>> SimplexSolveF(int cols, int rows,
+            List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes, List<double> functionT,
+            double ResultFunctionT, double ResultFunctionF, int colsBeforeAdding,
+            bool max, bool optimum)
+        {
+            double resolvingElement;
+            int colIndex;
+            int rowIndex;
+
+            while (!optimum)
+            {
+                colIndex = functionValues.IndexOf(functionValues.Max());
+
+                rowIndex = findRowIndex(limitValues, limitFreeValues, rows, colIndex);
+                if (rowIndex == -1)
+                    return solution;
+
+                resolvingElement = limitValues[rowIndex][colIndex];
+                basicValuesIndexes[rowIndex] = colIndex;
+
+                //пересчитываем значение функции T
+                ResultFunctionT -= limitFreeValues[rowIndex] * functionT[colIndex] / resolvingElement;
+                for (int i = 0; i < cols; i++)
+                {
+                    if (i != colIndex)
+                        functionT[i] -= limitValues[rowIndex][i] * functionT[colIndex] / resolvingElement;
+                }
+                functionT[colIndex] = 0;
+
+
+                //пересчитываем значение функции f
+                ResultFunctionF -= limitFreeValues[rowIndex] * functionValues[colIndex] / resolvingElement;
+                for (int i = 0; i < cols; i++)
+                {
+                    if (i != colIndex)
+                        functionValues[i] -= limitValues[rowIndex][i] * functionValues[colIndex] / resolvingElement;
+                }
+                functionValues[colIndex] = 0;
+
+
+                //пересчитываем значения свободных членов
+                for (int i = 0; i < rows; i++)
+                {
+                    if (i != rowIndex)
+                        limitFreeValues[i] -= limitValues[i][colIndex] * limitFreeValues[rowIndex] / resolvingElement;
+                }
+                limitFreeValues[rowIndex] /= resolvingElement;
+
+
+                //пересчитываем симплекс-таблицу
+                List<List<double>> solvingMatrix = new List<List<double>>();
+
+                for (int i = 0; i < cols; i++)
+                {
+                    limitValues[rowIndex][i] /= resolvingElement;
+                }
+                for (int i = 0; i < rows; i++)
+                {
+                    List<double> rowSolution = new List<double>();
+                    for (int j = 0; j < cols; j++)
+                    {
+                        if (i == rowIndex)
+                        {
+                            rowSolution.Add(limitValues[i][j]);
+                        }
+                        else
+                            rowSolution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j]);
+                    }
+                    solvingMatrix.Add(rowSolution);
+                }
+
+                limitValues.Clear();
+                for (int i = 0; i < rows; i++)
+                {
+                    List<double> iteration = new List<double>();
+                    iteration.AddRange(solvingMatrix[i]);
+                    limitValues.Add(iteration);
+                }
+                solvingMatrix.Clear();
+
+                //проверяем план на оптимальность
+                optimum = isOptimum(functionValues, colsBeforeAdding);
+            }
+
+            return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, ResultFunctionF, max);
+        }
+
+
         List<List<double>> SimplexSolve(int cols, int rows, 
             List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes, List<double> functionT,
             double ResultFunctionT, int colsBeforeAdding,
@@ -201,6 +289,8 @@ namespace CourseWork
                 {
                     if (findRowIndex(limitValues, limitFreeValues, rows, i) == -1)
                         return solution;
+                    else
+                        return solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, ResultFunctionF, colsBeforeAdding, max, false);
                 }
             }
             
@@ -218,6 +308,23 @@ namespace CourseWork
             double ResultFunctionF = 0;
             int colsBeforeAdding;
 
+            //если есть отрицательные b
+            for (int i = 0; i < rows; i++)
+            {
+                if (limitFreeValues[i] < 0)
+                {
+                    for (int j = 0; j < cols; j++)
+                    {
+                        limitValues[i][j] *= (-1);
+                    }
+                    limitFreeValues[i] *= (-1);
+                    if (sign[i] == 0)
+                        sign[i] = 2;
+                    else if (sign[i] == 2)
+                        sign[i] = 0;
+                }
+            }
+
             //добавление доп переменных, если есть неравенства
             for (int i = 0; i < rows; i++)
             {
@@ -227,6 +334,23 @@ namespace CourseWork
                     {
                         if (j == i)
                             limitValues[j].Add(-1);
+                        else
+                            limitValues[j].Add(0);
+                    }
+                    functionValues.Add(0);
+                    cols++;
+                }
+            }
+
+            //добавление доп переменных, если есть неравенства
+            for (int i = 0; i < rows; i++)
+            {
+                if (sign[i] == 2) // "<="
+                {
+                    for (int j = 0; j < rows; j++)
+                    {
+                        if (j == i)
+                            limitValues[j].Add(1);
                         else
                             limitValues[j].Add(0);
                     }
@@ -250,19 +374,6 @@ namespace CourseWork
                 basicValuesIndexes.Add(cols);  //индексы базисных переменных
                 functionValues.Add(0);
                 cols++;
-            }
-
-            //если есть отрицательные b
-            for(int i = 0; i < rows; i++)
-            {
-                if (limitFreeValues[i] < 0)
-                {
-                    for(int j = 0; j < cols; j++)
-                    {
-                        limitValues[i][j] *= (-1);
-                    }
-                    limitFreeValues[i] *= (-1);
-                }
             }
 
 
@@ -293,20 +404,11 @@ namespace CourseWork
                 }
             }
 
-            bool func = true;
-            if (colsBeforeAdding <= rows)
-                func = false;
-
-            bool optimum = true;
-            if (func)
-                optimum = isOptimum(functionT, colsBeforeAdding);
-            else
-                optimum = isOptimum(functionValues, colsBeforeAdding);
-
+            bool optimum = isOptimum(functionT, colsBeforeAdding);
 
             if (!optimum)
                 solution = SimplexSolve(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, 
-                    ResultFunctionT, colsBeforeAdding, max, optimum, func);
+                    ResultFunctionT, colsBeforeAdding, max, optimum, true);
             else
                 solution = MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, 
                     ResultFunctionT, ResultFunctionF, max);
@@ -320,6 +422,7 @@ namespace CourseWork
         {
             this.AutoSize = true;
             this.Text = "Решение";
+            this.StartPosition = FormStartPosition.CenterScreen;
 
             int num = 0;
 
@@ -413,7 +516,7 @@ namespace CourseWork
             {
                 richTextBox1.Text += "\r\n";
                 richTextBox1.Text += "Задача не имеет решений. \r\n";
-                richTextBox1.Width = 300;
+                richTextBox1.Width = 450;
                 this.Controls.Add(richTextBox1);
             }
             else
@@ -423,7 +526,7 @@ namespace CourseWork
 
                 DataGridView DGV = new DataGridView();
                 DGV.Font = new Font("Microsoft Sans Serif", 11);
-                DGV.Location = new Point(10, richTextBox1.Height + 120);
+                DGV.Location = new Point(10, richTextBox1.Height + 140);
                 DGV.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
                 DGV.AutoSize = true;
                 DGV.ReadOnly = true;
@@ -433,11 +536,20 @@ namespace CourseWork
 
                 DGV.Columns[0].HeaderText = "Базис";
                 DGV.Columns[1].HeaderText = "Св. чл.";
-                int k = 1;
+                int k = 1, y = 1;
                 for (int i = 2; i < rows; i++)
                 {
-                    DGV.Columns[i].HeaderText = "X" + k.ToString();
-                    k++;
+                    if(i < (rows - cols + 2))
+                    {
+                        DGV.Columns[i].HeaderText = "X" + k.ToString();
+                        k++;
+                    }
+                    else
+                    {
+                        DGV.Columns[i].HeaderText = "Y" + y.ToString();
+                        y++;
+                    }
+                    
                 }
 
                 for (int i = 0; i < cols; i++)
@@ -461,10 +573,11 @@ namespace CourseWork
                             DGV.Rows[i].Cells[j].Value = Math.Round(solution[j][i], 2).ToString();
                         }
                     }
-
-                    richTextBox1.Width = DGV.RowHeadersWidth * (cols + 3) + 50;
                 }
 
+                int dgv_width = DGV.Columns.GetColumnsWidth(DataGridViewElementStates.Visible);
+                richTextBox1.Width = dgv_width / 2 + 100;
+                
                 this.Controls.Add(richTextBox1);
                 this.Controls.Add(DGV);
             }
