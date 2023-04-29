@@ -133,7 +133,6 @@ namespace CourseWork
                 }
                 functionValues[colIndex] = 0;
 
-
                 //пересчитываем значения свободных членов
                 for (int i = 0; i < rows; i++)
                 {
@@ -213,7 +212,6 @@ namespace CourseWork
                 rowIndex = findRowIndex(limitValues, limitFreeValues, rows, colIndex);
                 if (rowIndex == -1)
                     return solution = NoIOR(cols, rows);
-                //НЕТ ИОР!!!!!!!!!
 
                 resolvingElement = limitValues[rowIndex][colIndex];
                 basicValuesIndexes[rowIndex] = colIndex;
@@ -372,7 +370,6 @@ namespace CourseWork
             }
 
 
-            // ИОР
             for (int j = 0; j < colsBeforeAdding; j++) //функция T
             {
                 double sum = 0;
