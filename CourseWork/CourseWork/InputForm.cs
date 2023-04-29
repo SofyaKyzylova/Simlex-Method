@@ -1,5 +1,3 @@
-//#include <vector>
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -23,7 +21,8 @@ namespace CourseWork
         List<List<double>> limitValues = new List<List<double>>();
         List<double> limitFreeValues = new List<double>();
         List<int> sign = new List<int>();
-        bool max = true;
+        bool min = true;
+        bool isClosed = true;
 
         internal InputForm(int cols, int rows)
         {
@@ -34,7 +33,7 @@ namespace CourseWork
             label1.Location = new Point(10, 10);
             label1.Name = "label2";
             label1.AutoSize = true;
-            label1.Font = new Font("Microsoft Sans Serif", 9);
+            label1.Font = new Font("Microsoft Sans Serif", 10);
             label1.Text = "Введите коэффициеты целевой функции";
             this.Controls.Add(label1);
 
@@ -48,7 +47,7 @@ namespace CourseWork
                 TextBox textBox = new TextBox();
                 textBox.Location = new Point(x, y);
                 textBox.Name = j.ToString();
-                textBox.Font = new Font("Microsoft Sans Serif", 9);
+                textBox.Font = new Font("Microsoft Sans Serif", 10);
                 textBox.Height = 20;
                 textBox.Width = 40;
                 textBox.KeyPress += (sender, eventArgs) => {
@@ -77,7 +76,7 @@ namespace CourseWork
                 label.Location = new Point(x + 45, y);
                 label.Name = "labelFunc" + j;
                 label.AutoSize = true;
-                label.Font = new Font("Microsoft Sans Serif", 9);
+                label.Font = new Font("Microsoft Sans Serif", 10);
                 label.Text = "x" + ++xNum;
                 this.Controls.Add(label);
                 x += 145;
@@ -90,7 +89,7 @@ namespace CourseWork
             comboBoxMaxMin.Location = new Point(x, y);  
             comboBoxMaxMin.Size = new Size(50, 100);
             comboBoxMaxMin.Name = "ComboBoxMaxMin";
-            comboBoxMaxMin.Font = new Font("Microsoft Sans Serif", 9);
+            comboBoxMaxMin.Font = new Font("Microsoft Sans Serif", 10);
             comboBoxMaxMin.Items.Add("max");
             comboBoxMaxMin.Items.Add("min");
             comboBoxMaxMin.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -101,7 +100,7 @@ namespace CourseWork
             label2.Location = new Point(10, 100);
             label2.Name = "label1";
             label2.AutoSize = true;
-            label2.Font = new Font("Microsoft Sans Serif", 9);
+            label2.Font = new Font("Microsoft Sans Serif", 10);
             label2.Text = "Введите коэффициеты ограничений";
             this.Controls.Add(label2);
 
@@ -118,7 +117,7 @@ namespace CourseWork
                     TextBox textBoxLim = new TextBox();
                     textBoxLim.Location = new Point(x, y);
                     textBoxLim.Name = i.ToString() + j.ToString();
-                    textBoxLim.Font = new Font("Microsoft Sans Serif", 9);
+                    textBoxLim.Font = new Font("Microsoft Sans Serif", 10);
                     textBoxLim.Height = 20;
                     textBoxLim.Width = 40;
                     textBoxLim.KeyPress += (sender, eventArgs) => {
@@ -147,7 +146,7 @@ namespace CourseWork
                     labelLim.Location = new Point(x + 45, y);
                     labelLim.Name = "label" + i + j;
                     labelLim.AutoSize = true;
-                    labelLim.Font = new Font("Microsoft Sans Serif", 9);
+                    labelLim.Font = new Font("Microsoft Sans Serif", 10);
                     labelLim.Text = "x" + ++yNum; 
                     this.Controls.Add(labelLim);
 
@@ -164,7 +163,7 @@ namespace CourseWork
                 comboBox.Location = new Point(10 + 145 * cols, y);
                 comboBox.Size = new Size(50, 35); 
                 comboBox.Name = "comboBox" + j.ToString();
-                comboBox.Font = new Font("Microsoft Sans Serif", 9);
+                comboBox.Font = new Font("Microsoft Sans Serif", 10);
                 comboBox.Items.Add(">=");
                 comboBox.Items.Add("=");
                 comboBox.Items.Add("<=");
@@ -183,7 +182,7 @@ namespace CourseWork
                 TextBox textBoxB = new TextBox();
                 textBoxB.Location = new Point(80 + 150 * cols, y);
                 textBoxB.Name = "textBox" + j.ToString();
-                textBoxB.Font = new Font("Microsoft Sans Serif", 9);
+                textBoxB.Font = new Font("Microsoft Sans Serif", 10);
                 textBoxB.Height = 20;
                 textBoxB.Width = 40;
                 textBoxB.KeyPress += (sender, eventArgs) => {
@@ -212,7 +211,7 @@ namespace CourseWork
                 labelB.Location = new Point(125 + 150 * cols, y);
                 labelB.Name = "label" + j;
                 labelB.AutoSize = true;
-                labelB.Font = new Font("Microsoft Sans Serif", 9);
+                labelB.Font = new Font("Microsoft Sans Serif", 10);
                 labelB.Text = "b" + ++xNum;
                 this.Controls.Add(labelB);
                 y += 25;
@@ -223,7 +222,7 @@ namespace CourseWork
             buttonSolve.Location = new Point(10, y + 25);
             buttonSolve.Size = new Size(110, 45);
             buttonSolve.Name = "ButtonCount";
-            buttonSolve.Font = new Font("Microsoft Sans Serif", 9);
+            buttonSolve.Font = new Font("Microsoft Sans Serif", 10);
             buttonSolve.Text = "Рассчитать";
             this.Controls.Add(buttonSolve);
 
@@ -231,11 +230,18 @@ namespace CourseWork
             buttonSolve.Click += (sender, eventArgs) =>
             {
                 bool textBoxesFilled = this.Controls.OfType<TextBox>().Any(textBox => textBox.Text == "");
+                bool textIncorrect = this.Controls.OfType<TextBox>().Any(textBox => textBox.Text == "-");
                 bool comboBoxesFilled = this.Controls.OfType<ComboBox>().Any(comboBox => comboBox.SelectedIndex == -1);
 
-                if (textBoxesFilled || comboBoxesFilled) 
+                if (textBoxesFilled || textIncorrect || comboBoxesFilled) 
                 {
-                    MessageBox.Show("Пожалуйста, заполните все поля ввода");
+                    MessageBox.Show(
+                        "Пожалуйста, заполните все поля ввода",
+                         "Сообщение",
+                         MessageBoxButtons.OK,
+                         MessageBoxIcon.Warning,
+                         MessageBoxDefaultButton.Button1,
+                         MessageBoxOptions.DefaultDesktopOnly);
                 }
                 else
                 {
@@ -271,11 +277,24 @@ namespace CourseWork
 
                     string extremum = comboBoxMaxMin.Text;
                     if (extremum == "min")
-                        max = false;
+                        min = false;
 
-
-                    SimplexMethodSolution simplexMethodSolution = new SimplexMethodSolution(cols, rows, functionValues, limitValues, limitFreeValues, sign, max);
-                    simplexMethodSolution.Show(this);
+                    if (isClosed)
+                    {
+                        SimplexMethodSolution simplexMethodSolution = new SimplexMethodSolution(cols, rows, functionValues, limitValues, limitFreeValues, sign, min);
+                        simplexMethodSolution.Show(this);
+                        isClosed = false;
+                    }
+                    else
+                    {
+                        MessageBox.Show(
+                            "Решение уже открыто!",
+                             "Сообщение",
+                             MessageBoxButtons.OK,
+                             MessageBoxIcon.Information,
+                             MessageBoxDefaultButton.Button1,
+                             MessageBoxOptions.DefaultDesktopOnly);
+                    }
                 }
                 
             };
