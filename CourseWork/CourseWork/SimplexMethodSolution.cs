@@ -20,7 +20,7 @@ namespace CourseWork
 
         List<List<double>> solution = new List<List<double>>();
 
-        bool isOptimum(List<double> functionValues, int cols)
+        bool IsOptimum(List<double> functionValues, int cols)
         {
             for (int i = 0; i < cols; i++)
             {
@@ -34,7 +34,7 @@ namespace CourseWork
         }
 
 
-        int findRowIndex(List<List<double>> limitValues, List<double> limitFreeValues, int rows, int colIndex)
+        int FindRowIndex(List<List<double>> limitValues, List<double> limitFreeValues, int rows, int colIndex)
         {
             int rowIndex = -1;
             for(int i = 0; i < rows; i++)
@@ -62,8 +62,7 @@ namespace CourseWork
 
 
         List<List<double>> MakeSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
-            List<double> limitFreeValues, List<int> basicValuesIndexes, List<double> functionT,
-            double ResultFunctionT, double ResultFunctionF, bool min)
+            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool min)
         {
             List<double> col = new List<double>();
             for (int i = 0; i < rows; i++)
@@ -71,17 +70,15 @@ namespace CourseWork
                 col.Add(basicValuesIndexes[i] + 1);
             }
             col.Add(0);
-            col.Add(0);
             solution.Add(col);
 
             List<double> col1 = new List<double>();
+
             col1.AddRange(limitFreeValues);
-            col1.Add(ResultFunctionT);
             if (min)
                 col1.Add(-ResultFunctionF);
             else
                 col1.Add(ResultFunctionF);
-            col1.Add(ResultFunctionF);
             solution.Add(col1);
 
             for (int i = 0; i < cols; i++)
@@ -91,12 +88,10 @@ namespace CourseWork
                 {
                     col2.Add(limitValues[j][i]);
                 }
-                col2.Add(functionT[i]);
                 if (min)
                     col2.Add(-functionValues[i]);
                 else
                     col2.Add(functionValues[i]);
-                col2.Add(functionValues[i]);
                 solution.Add(col2);
             }
 
@@ -105,19 +100,19 @@ namespace CourseWork
 
 
         List<List<double>> SimplexSolveF(int cols, int rows,
-            List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes, List<double> functionT,
-            double ResultFunctionT, double ResultFunctionF, int colsBeforeAdding, bool min)
+            List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes,
+            double ResultFunctionF, int colsBeforeAdding, bool min)
         {
             double resolvingElement;
             int colIndex;
             int rowIndex;
-            bool optimum = isOptimum(functionValues, colsBeforeAdding);
+            bool optimum = IsOptimum(functionValues, colsBeforeAdding);
 
             while (!optimum)
             {
                 colIndex = functionValues.IndexOf(functionValues.Max());
 
-                rowIndex = findRowIndex(limitValues, limitFreeValues, rows, colIndex);
+                rowIndex = FindRowIndex(limitValues, limitFreeValues, rows, colIndex);
                 if (rowIndex == -1)
                     return solution;
 
@@ -132,6 +127,7 @@ namespace CourseWork
                         functionValues[i] -= limitValues[rowIndex][i] * functionValues[colIndex] / resolvingElement;
                 }
                 functionValues[colIndex] = 0;
+
 
                 //пересчитываем значения свободных членов
                 for (int i = 0; i < rows; i++)
@@ -174,10 +170,10 @@ namespace CourseWork
                 solvingMatrix.Clear();
 
                 //проверяем план на оптимальность
-                optimum = isOptimum(functionValues, colsBeforeAdding);
+                optimum = IsOptimum(functionValues, colsBeforeAdding);
             }
 
-            return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, ResultFunctionF, min);
+            return MakeSolution(colsBeforeAdding, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
         }
 
         List<List<double>> NoIOR(int cols, int rows)
@@ -209,7 +205,7 @@ namespace CourseWork
             {
                 colIndex = functionT.IndexOf(functionT.Max());
 
-                rowIndex = findRowIndex(limitValues, limitFreeValues, rows, colIndex);
+                rowIndex = FindRowIndex(limitValues, limitFreeValues, rows, colIndex);
                 if (rowIndex == -1)
                     return solution = NoIOR(cols, rows);
 
@@ -277,7 +273,7 @@ namespace CourseWork
                 solvingMatrix.Clear();
 
                 //проверяем план на оптимальность
-                optimum = isOptimum(functionT, colsBeforeAdding);
+                optimum = IsOptimum(functionT, colsBeforeAdding);
             }
 
             for(int i = 0; i < rows; i++)
@@ -286,7 +282,7 @@ namespace CourseWork
                     return solution = NoIOR(cols, rows);
             }
 
-            solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, ResultFunctionF, colsBeforeAdding, min);
+            solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, colsBeforeAdding, min);
 
             return solution;
         }
@@ -410,10 +406,12 @@ namespace CourseWork
 
             int num = 0;
 
-            RichTextBox richTextBox1 = new RichTextBox();
-            richTextBox1.Location = new Point(10, 10);
-            richTextBox1.Font = new Font("Microsoft Sans Serif", 11);
-            richTextBox1.ReadOnly = true;
+            RichTextBox richTextBox1 = new RichTextBox
+            {
+                Location = new Point(10, 10),
+                Font = new Font("Microsoft Sans Serif", 11),
+                ReadOnly = true
+            };
             richTextBox1.ContentsResized += (object sender, ContentsResizedEventArgs e) =>
             {
                 var richTextBox = (RichTextBox)sender;
@@ -530,31 +528,25 @@ namespace CourseWork
                 }
                 else
                 {
-                    DataGridView DGV = new DataGridView();
-                    DGV.Font = new Font("Microsoft Sans Serif", 11);
-                    DGV.Location = new Point(10, richTextBox1.Height + 140);
-                    DGV.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-                    DGV.AutoSize = true;
-                    DGV.ReadOnly = true;
+                    DataGridView DGV = new DataGridView
+                    {
+                        Font = new Font("Microsoft Sans Serif", 11),
+                        Location = new Point(10, richTextBox1.Height + 140),
+                        AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells,
+                        AutoSize = true,
+                        ReadOnly = true,
 
-                    DGV.ColumnCount = rows;
-                    DGV.RowCount = cols;
+                        ColumnCount = rows,
+                        RowCount = cols
+                    };
 
                     DGV.Columns[0].HeaderText = "Базис";
                     DGV.Columns[1].HeaderText = "Св. чл.";
-                    int k = 1, y = 1;
+                    int k = 1;
                     for (int i = 2; i < rows; i++)
                     {
-                        if (i < (rows - cols + 2))
-                        {
-                            DGV.Columns[i].HeaderText = "X" + k.ToString();
-                            k++;
-                        }
-                        else
-                        {
-                            DGV.Columns[i].HeaderText = "Y" + y.ToString();
-                            y++;
-                        }
+                        DGV.Columns[i].HeaderText = "X" + k.ToString();
+                        k++;
 
                     }
 
@@ -562,13 +554,9 @@ namespace CourseWork
                     {
                         for (int j = 0; j < rows; j++)
                         {
-                            if (i < cols - 2 && j == 0)
+                            if (i < cols - 1 && j == 0)
                             {
                                 DGV.Rows[i].Cells[j].Value = "X" + Math.Round(solution[j][i], 3).ToString();
-                            }
-                            else if (i == cols - 2 && j == 0)
-                            {
-                                DGV.Rows[i].Cells[j].Value = "T";
                             }
                             else if (i == cols - 1 && j == 0)
                             {
@@ -585,12 +573,14 @@ namespace CourseWork
                     int dgv_height = DGV.Rows.GetRowsHeight(DataGridViewElementStates.Visible);
                     richTextBox1.Width = dgv_width / 2 + 100;
 
-                    Button intSolutionButton = new Button();
-                    intSolutionButton.Location = new Point(10, richTextBox1.Height + dgv_height + 250);
-                    intSolutionButton.Size = new Size(180, 45);
-                    intSolutionButton.Name = "ButtonCount";
-                    intSolutionButton.Font = new Font("Microsoft Sans Serif", 10);
-                    intSolutionButton.Text = "Найти целочисленное решение";
+                    Button intSolutionButton = new Button
+                    {
+                        Location = new Point(10, richTextBox1.Height + dgv_height + 250),
+                        Size = new Size(190, 50),
+                        Name = "ButtonCount",
+                        Font = new Font("Microsoft Sans Serif", 11),
+                        Text = "Найти целочисленное решение"
+                    };
                     this.Controls.Add(intSolutionButton);
 
 
