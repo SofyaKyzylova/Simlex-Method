@@ -445,8 +445,9 @@ namespace CourseWork
             return maxFractionIndex;
         }
 
-        List<double> GetFractions(int rows, List<double> limitFreeValues, List<double> fractions)
+        List<double> GetFractions(int rows, List<double> limitFreeValues)
         {
+            List<double> fractions = new List<double>();
             for (int i = 0; i < rows; i++)
             {
                 if ((limitFreeValues[i] - Math.Floor(limitFreeValues[i]) != 0)) //проверяем есть ли дробные части
@@ -475,27 +476,7 @@ namespace CourseWork
             List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool min)
         {
             List<double> fractions = new List<double>();
-            fractions = GetFractions(rows, limitFreeValues, fractions);
-            //for (int i = 0; i < rows; i++)
-            //{
-            //    if ((limitFreeValues[i] - Math.Floor(limitFreeValues[i]) != 0)) //проверяем есть ли дробные части
-            //    {
-            //        fractions.Add(limitFreeValues[i] - Math.Floor(limitFreeValues[i]));
-            //    }
-            //    else
-            //        fractions.Add(-1);
-            //}
-
-            //bool flag = false;
-            //for(int i = 0; i < rows; i++)
-            //{
-            //    if (fractions[i] != -1)
-            //    {
-            //        flag = true;
-            //        break;
-            //    }
-            //}
-
+            fractions = GetFractions(rows, limitFreeValues);
             bool flag = IsIntSolution(rows, fractions);
 
             if (!flag) //ответ целочисленный, РЕШЕНИЕ НЕ НУЖНО
@@ -537,7 +518,7 @@ namespace CourseWork
                 solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
 
                 fractions.Clear();
-                fractions = GetFractions(rows, limitFreeValues, fractions);
+                fractions = GetFractions(rows, limitFreeValues);
                 flag = IsIntSolution(rows, fractions);
             }
 
@@ -775,13 +756,16 @@ namespace CourseWork
                                 {
                                     limits.Add(solution[i][j]);
                                 }
-                                else
+                                else if (j > 1 && i == rows - 1)
                                 {
                                     functionValues.Add(solution[i][j]);
                                 }
                             }
                             limitValues.Add(limits);
                         }
+
+                        cols -= 2;
+                        rows -= 1;
 
                         solution.Clear();
                         solution = GomoryMethod(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
