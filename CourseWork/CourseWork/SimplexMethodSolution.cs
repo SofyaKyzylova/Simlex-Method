@@ -19,6 +19,7 @@ namespace CourseWork
         }
 
         List<List<double>> solution = new List<List<double>>();
+        bool closed = true;
 
         bool IsOptimum(List<double> functionValues, int cols)
         {
@@ -789,13 +790,22 @@ namespace CourseWork
                     {
                         Font = new Font("Microsoft Sans Serif", 11),
                         Location = new Point(10, richTextBox1.Height + 120),
-                        AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells,
-                        AutoSize = true,
                         ReadOnly = true,
-
                         ColumnCount = rows,
                         RowCount = cols
                     };
+                    DataGridViewElementStates states = DataGridViewElementStates.None;
+                    DGV.ScrollBars = ScrollBars.None;
+                    var totalHeight = DGV.Rows.GetRowsHeight(states) + DGV.ColumnHeadersHeight;
+                    totalHeight += DGV.Rows.Count * 4 + 10;  
+
+                    for(int i = 0; i < rows; i++)
+                    {
+                        DGV.Columns[i].Width = 70;
+                    }
+
+                    var totalWidth = (rows + 1) * 70;
+                    DGV.ClientSize = new Size(totalWidth, totalHeight);
 
                     DGV.Columns[0].HeaderText = "Базис";
                     DGV.Columns[1].HeaderText = "Св. чл.";
@@ -804,7 +814,6 @@ namespace CourseWork
                     {
                         DGV.Columns[i].HeaderText = "X" + k.ToString();
                         k++;
-
                     }
 
                     for (int i = 0; i < cols; i++)
@@ -821,7 +830,7 @@ namespace CourseWork
                             }
                             else
                             {
-                                DGV.Rows[i].Cells[j].Value = Math.Round(solution[j][i], 2).ToString();
+                                DGV.Rows[i].Cells[j].Value = Math.Round(solution[j][i], 3).ToString();
                             }
                         }
                     }
@@ -843,122 +852,147 @@ namespace CourseWork
 
                     intSolutionButton.Click += (sender, eventArgs) =>
                     {
-                        RichTextBox richTextBox2 = new RichTextBox
+                        if (closed)
                         {
-                            Location = new Point(10, richTextBox1.Height + dgv_height + 180),
-                            Font = new Font("Microsoft Sans Serif", 11),
-                            ReadOnly = true
-                        };
-                        richTextBox2.ContentsResized += (object senderRichTextBox, ContentsResizedEventArgs e) =>
-                        {
-                            var richTextBox = (RichTextBox)senderRichTextBox;
-                            richTextBox.Height = e.NewRectangle.Height;
-                        };
-                        richTextBox2.Width = 700;
-                        richTextBox2.WordWrap = false;
-                        richTextBox2.ScrollBars = RichTextBoxScrollBars.None;
-
-
-                        functionValues.Clear();
-                        limitValues.Clear();
-                        limitFreeValues.Clear();
-
-                        List<int> basicValuesIndexes = new List<int>();
-                        List<List<double>> limitsAdd = new List<List<double>>();
-                        double ResultFunctionF = solution[1][cols - 1];
-
-                        basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
-                        limitFreeValues = GetLimitFreeValues(rows, cols, solution);
-                        functionValues = GetFunctionValues(rows, cols, solution);
-                        ResultFunctionF = functionValues[0];
-                        functionValues.RemoveAt(0);
-                        limitValues = GetLimitValues(rows, cols, solution);
-
-                        cols -= 1;
-                        rows -= 2;
-
-                        solution.Clear();
-                        solution = GomoryMethod(rows, cols, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
-
-                        if (!solution.Any())
-                        {
-                            richTextBox2.Text += "Задача не имеет целочисленных решений. \r\n";
-                            this.Controls.Add(richTextBox2);
-                        }
-                        else
-                        {
-                            cols = solution[0].Count();
-                            rows = solution.Count();
-                            bool intFlag = true;
-
-                            for (int i = 0; i < rows; i++)
+                            RichTextBox richTextBox2 = new RichTextBox
                             {
-                                for (int j = 0; j < cols; j++)
-                                {
-                                    if (solution[i][j] != 0)
-                                    {
-                                        intFlag = false;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (intFlag)
+                                Location = new Point(10, richTextBox1.Height + dgv_height + 180),
+                                Font = new Font("Microsoft Sans Serif", 11),
+                                ReadOnly = true
+                            };
+                            richTextBox2.ContentsResized += (object senderRichTextBox, ContentsResizedEventArgs e) =>
                             {
-                                richTextBox2.Text += "\r\n";
-                                richTextBox2.Text += "Полученный ответ является целочисленным. Нет необходимости применять метод Гомори. \r\n";
+                                var richTextBox = (RichTextBox)senderRichTextBox;
+                                richTextBox.Height = e.NewRectangle.Height;
+                            };
+                            richTextBox2.Width = 700;
+                            richTextBox2.WordWrap = false;
+                            richTextBox2.ScrollBars = RichTextBoxScrollBars.None;
+
+
+                            functionValues.Clear();
+                            limitValues.Clear();
+                            limitFreeValues.Clear();
+
+                            List<int> basicValuesIndexes = new List<int>();
+                            List<List<double>> limitsAdd = new List<List<double>>();
+                            double ResultFunctionF = solution[1][cols - 1];
+
+                            basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
+                            limitFreeValues = GetLimitFreeValues(rows, cols, solution);
+                            functionValues = GetFunctionValues(rows, cols, solution);
+                            ResultFunctionF = functionValues[0];
+                            functionValues.RemoveAt(0);
+                            limitValues = GetLimitValues(rows, cols, solution);
+
+                            cols -= 1;
+                            rows -= 2;
+
+                            solution.Clear();
+                            solution = GomoryMethod(rows, cols, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+
+                            if (!solution.Any())
+                            {
+                                richTextBox2.Text += "Задача не имеет целочисленных решений. \r\n";
                                 this.Controls.Add(richTextBox2);
                             }
                             else
                             {
-                                richTextBox2.Text += "Решение задачи методом Гомори: нахождение целочисленного решения. \r\n";
+                                cols = solution[0].Count();
+                                rows = solution.Count();
+                                bool intFlag = true;
 
-                                DataGridView DGV2 = new DataGridView
+                                for (int i = 0; i < rows; i++)
                                 {
-                                    Font = new Font("Microsoft Sans Serif", 11),
-                                    Location = new Point(10, richTextBox1.Height + dgv_height + richTextBox2.Height + 140),
-                                    AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells,
-                                    AutoSize = true,
-                                    ReadOnly = true,
-
-                                    ColumnCount = rows,
-                                    RowCount = cols
-                                };
-
-                                DGV2.Columns[0].HeaderText = "Базис";
-                                DGV2.Columns[1].HeaderText = "Св. чл.";
-                                int k2 = 1;
-                                for (int i = 2; i < rows; i++)
-                                {
-                                    DGV2.Columns[i].HeaderText = "X" + k2.ToString();
-                                    k2++;
-
-                                }
-
-                                for (int i = 0; i < cols; i++)
-                                {
-                                    for (int j = 0; j < rows; j++)
+                                    for (int j = 0; j < cols; j++)
                                     {
-                                        if (i < cols - 1 && j == 0)
+                                        if (solution[i][j] != 0)
                                         {
-                                            DGV2.Rows[i].Cells[j].Value = "X" + Math.Round(solution[j][i], 3).ToString();
-                                        }
-                                        else if (i == cols - 1 && j == 0)
-                                        {
-                                            DGV2.Rows[i].Cells[j].Value = "F";
-                                        }
-                                        else
-                                        {
-                                            DGV2.Rows[i].Cells[j].Value = Math.Round(solution[j][i], 2).ToString();
+                                            intFlag = false;
+                                            break;
                                         }
                                     }
                                 }
 
-                                this.Controls.Add(richTextBox2);
-                                this.Controls.Add(DGV2);
-                            };
+                                if (intFlag)
+                                {
+                                    richTextBox2.Text += "\r\n";
+                                    richTextBox2.Text += "Полученный ответ является целочисленным. Нет необходимости применять метод Гомори. \r\n";
+                                    this.Controls.Add(richTextBox2);
+                                }
+                                else
+                                {
+                                    richTextBox2.Text += "Решение задачи методом Гомори: нахождение целочисленного решения. \r\n";
+
+                                    DataGridView DGV2 = new DataGridView
+                                    {
+                                        Font = new Font("Microsoft Sans Serif", 11),
+                                        Location = new Point(10, richTextBox1.Height + dgv_height + richTextBox2.Height + 140),
+                                        ReadOnly = true,
+                                        ColumnCount = rows,
+                                        RowCount = cols
+                                    };
+
+                                    DataGridViewElementStates states1 = DataGridViewElementStates.None;
+                                    DGV2.ScrollBars = ScrollBars.None;
+                                    var totalHeight1 = DGV2.Rows.GetRowsHeight(states1) + DGV2.ColumnHeadersHeight;
+                                    totalHeight1 += DGV2.Rows.Count * 4 + 10;
+
+                                    for (int i = 0; i < rows; i++)
+                                    {
+                                        DGV2.Columns[i].Width = 70;
+                                    }
+
+                                    var totalWidth1 = (rows + 1) * 70;
+                                    DGV2.ClientSize = new Size(totalWidth1, totalHeight1);
+
+                                    DGV2.Columns[0].HeaderText = "Базис";
+                                    DGV2.Columns[1].HeaderText = "Св. чл.";
+                                    int k2 = 1;
+                                    for (int i = 2; i < rows; i++)
+                                    {
+                                        DGV2.Columns[i].HeaderText = "X" + k2.ToString();
+                                        k2++;
+                                    }
+
+                                    for (int i = 0; i < cols; i++)
+                                    {
+                                        for (int j = 0; j < rows; j++)
+                                        {
+                                            if (i < cols - 1 && j == 0)
+                                            {
+                                                DGV2.Rows[i].Cells[j].Value = "X" + Math.Round(solution[j][i], 3).ToString();
+                                            }
+                                            else if (i == cols - 1 && j == 0)
+                                            {
+                                                DGV2.Rows[i].Cells[j].Value = "F";
+                                            }
+                                            else
+                                            {
+                                                DGV2.Rows[i].Cells[j].Value = Math.Round(solution[j][i], 3).ToString();
+                                            }
+                                        }
+                                    }
+
+                                    this.Controls.Add(richTextBox2);
+                                    this.Controls.Add(DGV2);
+                                };
+                            }
+
+                            closed = false;
+                        }
+                        else
+                        {
+                            MessageBox.Show(
+                            "Решение уже открыто!",
+                             "Сообщение",
+                             MessageBoxButtons.OK,
+                             MessageBoxIcon.Information,
+                             MessageBoxDefaultButton.Button1,
+                             MessageBoxOptions.DefaultDesktopOnly);
                         }
                     };
+                    
                 }                
             }
         }
