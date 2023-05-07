@@ -117,16 +117,23 @@ namespace CourseWork
                     optimum = false;
                     negative = true;
                     negIndex = i;
+                    break;
                 }
             }
 
             while (!optimum)
             {
-                colIndex = functionValues.IndexOf(functionValues.Max());
-
                 if (negative)
+                {
+                    colIndex = functionValues.IndexOf(functionValues.Min()); 
                     rowIndex = negIndex;
-                else rowIndex = FindRowIndex(limitValues, limitFreeValues, rows, colIndex);
+                }
+                else
+                {
+                    colIndex = functionValues.IndexOf(functionValues.Max());
+                    rowIndex = FindRowIndex(limitValues, limitFreeValues, rows, colIndex);
+                }
+                
                 if (rowIndex == -1)
                     return solution;
                 
@@ -186,6 +193,18 @@ namespace CourseWork
 
                 //проверяем план на оптимальность
                 optimum = IsOptimum(functionValues, cols);
+                negative = false;
+
+                for (int i = 0; i < rows; i++)
+                {
+                    if (limitFreeValues[i] < 0)
+                    {
+                        optimum = false;
+                        negative = true;
+                        negIndex = i;
+                        break;
+                    }
+                }
             }
 
             return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
@@ -409,22 +428,113 @@ namespace CourseWork
             return SimplexFindIOR(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, colsBeforeAdding, min);
         }
 
+        List<double> GetLimitFreeValues(int rows, int cols, List<List<double>> solution)
+        {
+            List<double> limitFreeValues = new List<double>();
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    if (i == 1 && j != cols - 1)
+                    {
+                        limitFreeValues.Add(solution[i][j]);
+                    }
+                }
+            }
+
+            return limitFreeValues;
+        }
+
+        List<double> GetFunctionValues(int rows, int cols, List<List<double>> solution)
+        {
+            List<double> functionValues = new List<double>();
+            functionValues.Add(solution[1][cols - 1]);
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    if (i > 1 && j == cols - 1)
+                    {
+                        functionValues.Add(solution[i][j]);
+                    }
+                }
+            }
+            return functionValues;
+        }
+
+        List<int>GetBasicValuesIndexes(int rows, int cols, List<List<double>> solution)
+        {
+            List<int> basicValues = new List<int>();
+
+            for (int i = 0; i < rows; i++)
+            {
+                List<double> limits = new List<double>();
+                for (int j = 0; j < cols; j++)
+                {
+                    if (i == 0 && j != cols - 1)
+                    {
+                        basicValues.Add(Convert.ToInt32(solution[i][j]) - 1);
+                    }
+                }
+            }
+            return basicValues;
+        }
+
+        List<List<double>>GetLimitValues(int rows, int cols, List<List<double>> solution)
+        {
+            List<List<double>> limitValues = new List<List<double>>();
+            List<List<double>> limitsAdd = new List<List<double>>();
+
+            for (int i = 0; i < rows; i++)
+            {
+                List<double> limits = new List<double>();
+                for (int j = 0; j < cols; j++)
+                {
+                    if (i > 1 && j != cols - 1)
+                    {
+                        limits.Add(solution[i][j]);
+                    }
+                }
+                if (limits.Any())
+                    limitsAdd.Add(limits);
+            }
+
+            cols -= 1;
+            rows -= 2;
+
+            for (int i = 0; i < cols; i++)
+            {
+                List<double> limits = new List<double>();
+                for (int j = 0; j < rows; j++)
+                {
+                    limits.Add(limitsAdd[j][i]);
+                }
+                limitValues.Add(limits);
+            }
+
+            return limitValues;
+        }
 
         int MaxRowFractionIndex(List<List<double>> limitValues, List<double> fractions, int cols, int rows)
         {
             int maxFractionIndex = -1;
-            for(int i = 0; i < rows; i++)
+            bool flag = false;
+            for (int i = 0; i < rows; i++)
             {
                 for (int j = 0; j < cols; j++)
                 {
-                    if ((limitValues[i][j] - Math.Floor(limitValues[i][j]) != 0))
+                    if (Math.Round(limitValues[i][j] - Math.Floor(limitValues[i][j]), 6) != 0)
                     {
                         maxFractionIndex = i;
+                        flag = true;
                         break;
                     }
                 }
+                if (flag)
+                    break;
             }
-            
+
             if (maxFractionIndex != -1 && maxFractionIndex != rows - 1)
             {
                 for (int i = maxFractionIndex + 1; i < rows; i++)
@@ -433,7 +543,7 @@ namespace CourseWork
                     {
                         for (int j = 0; j < cols; j++)
                         {
-                            if ((limitValues[i][j] - Math.Floor(limitValues[i][j]) != 0))
+                            if (Math.Round(limitValues[i][j] - Math.Floor(limitValues[i][j]), 6) != 0)
                             {
                                 maxFractionIndex = i;
                             }
@@ -450,12 +560,12 @@ namespace CourseWork
             List<double> fractions = new List<double>();
             for (int i = 0; i < rows; i++)
             {
-                if ((limitFreeValues[i] - Math.Floor(limitFreeValues[i]) != 0)) //проверяем есть ли дробные части
+                if (Math.Round(limitFreeValues[i] - Math.Floor(limitFreeValues[i]), 6) != 0) //проверяем есть ли дробные части
                 {
                     fractions.Add(limitFreeValues[i] - Math.Floor(limitFreeValues[i]));
                 }
                 else
-                    fractions.Add(-1);
+                    fractions.Add(0);
             }
             return fractions;
         }
@@ -464,7 +574,7 @@ namespace CourseWork
         {
             for (int i = 0; i < rows; i++)
             {
-                if (fractions[i] != -1)
+                if (fractions[i] != 0)
                 {
                     return true;
                 }
@@ -488,7 +598,7 @@ namespace CourseWork
             while (flag) 
             {
                 int maxFraction = MaxRowFractionIndex(limitValues, fractions, cols, rows);
-                if (maxFraction == -1)
+                if (maxFraction == 0)
                 {
                     List<List<double>> empty = new List<List<double>>();
                     return empty;  //если не нашлось ни одной строки с дробными значениями - ЦЕЛОЧИСЛЕННОГО РЕШЕНИЯ НЕТ
@@ -502,22 +612,41 @@ namespace CourseWork
                 }
                 rowFractions.Add(1);
 
-                //составим доп ограничение:
+                //доп ограничение
                 for (int i = 0; i < rows; i++)
                 {
                     limitValues[i].Add(0);
                 }
 
-                cols++;
-                rows++;
                 limitFreeValues.Add((limitFreeValues[maxFraction] - Math.Floor(limitFreeValues[maxFraction])) * (-1)); //дробная часть свободного члена
                 limitValues.Add(rowFractions);
                 functionValues.Add(0);
-                basicValuesIndexes.Add(cols);
+                basicValuesIndexes.Add(cols - 1); 
+
+                cols++;
+                rows++;
 
                 solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+                cols = solution[0].Count();
+                rows = solution.Count();
 
                 fractions.Clear();
+                basicValuesIndexes.Clear();
+                limitFreeValues.Clear();
+                functionValues.Clear();
+                limitValues.Clear();
+
+                basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
+                limitFreeValues = GetLimitFreeValues(rows, cols, solution);
+                functionValues = GetFunctionValues(rows, cols, solution);
+                ResultFunctionF = functionValues[0];
+                functionValues.RemoveAt(0);
+                limitValues = GetLimitValues(rows, cols, solution);
+
+                int c = cols;
+                cols = rows - 2;
+                rows = c - 1;
+
                 fractions = GetFractions(rows, limitFreeValues);
                 flag = IsIntSolution(rows, fractions);
             }
@@ -546,6 +675,7 @@ namespace CourseWork
                 var richTextBox = (RichTextBox)sender;
                 richTextBox.Height = e.NewRectangle.Height;
             };
+            richTextBox1.Width = 700;
             richTextBox1.WordWrap = false;
             richTextBox1.ScrollBars = RichTextBoxScrollBars.None;
 
@@ -627,7 +757,6 @@ namespace CourseWork
             {
                 richTextBox1.Text += "\r\n";
                 richTextBox1.Text += "Задача не имеет оптимальных решений. \r\n";
-                richTextBox1.Width = 450;
                 this.Controls.Add(richTextBox1);
             }
             else
@@ -652,7 +781,6 @@ namespace CourseWork
                 {
                     richTextBox1.Text += "\r\n";
                     richTextBox1.Text += "Задача не имеет ИОР. Решений нет. \r\n";
-                    richTextBox1.Width = 450;
                     this.Controls.Add(richTextBox1);
                 }
                 else
@@ -660,7 +788,7 @@ namespace CourseWork
                     DataGridView DGV = new DataGridView
                     {
                         Font = new Font("Microsoft Sans Serif", 11),
-                        Location = new Point(10, richTextBox1.Height + 140),
+                        Location = new Point(10, richTextBox1.Height + 120),
                         AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells,
                         AutoSize = true,
                         ReadOnly = true,
@@ -698,13 +826,11 @@ namespace CourseWork
                         }
                     }
 
-                    int dgv_width = DGV.Columns.GetColumnsWidth(DataGridViewElementStates.Visible);
                     int dgv_height = DGV.Rows.GetRowsHeight(DataGridViewElementStates.Visible);
-                    richTextBox1.Width = dgv_width / 2 + 100;
 
                     Button intSolutionButton = new Button
                     {
-                        Location = new Point(10, richTextBox1.Height + dgv_height + 250),
+                        Location = new Point(10, richTextBox1.Height + dgv_height + 200),
                         Size = new Size(190, 50),
                         Name = "ButtonCount",
                         Font = new Font("Microsoft Sans Serif", 11),
@@ -719,7 +845,7 @@ namespace CourseWork
                     {
                         RichTextBox richTextBox2 = new RichTextBox
                         {
-                            Location = new Point(10, richTextBox1.Height + dgv_height + 320),
+                            Location = new Point(10, richTextBox1.Height + dgv_height + 180),
                             Font = new Font("Microsoft Sans Serif", 11),
                             ReadOnly = true
                         };
@@ -728,6 +854,7 @@ namespace CourseWork
                             var richTextBox = (RichTextBox)senderRichTextBox;
                             richTextBox.Height = e.NewRectangle.Height;
                         };
+                        richTextBox2.Width = 700;
                         richTextBox2.WordWrap = false;
                         richTextBox2.ScrollBars = RichTextBoxScrollBars.None;
 
@@ -737,48 +864,29 @@ namespace CourseWork
                         limitFreeValues.Clear();
 
                         List<int> basicValuesIndexes = new List<int>();
-                        double ResultFunctionF = solution[rows - 1][1];
+                        List<List<double>> limitsAdd = new List<List<double>>();
+                        double ResultFunctionF = solution[1][cols - 1];
 
-                        for(int i = 0; i < rows; i++)
-                        {
-                            List<double> limits = new List<double>();
-                            for (int j = 0; j < cols; j++)
-                            {
-                                if (j == 0 && i != rows - 1)
-                                {
-                                    basicValuesIndexes.Add(Convert.ToInt32(solution[i][j]) - 1);
-                                }
-                                else if (j == 1 && i != rows - 1)
-                                {
-                                    limitFreeValues.Add(solution[i][j]);
-                                }
-                                else if (j > 1 && i != rows - 1)
-                                {
-                                    limits.Add(solution[i][j]);
-                                }
-                                else if (j > 1 && i == rows - 1)
-                                {
-                                    functionValues.Add(solution[i][j]);
-                                }
-                            }
-                            limitValues.Add(limits);
-                        }
+                        basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
+                        limitFreeValues = GetLimitFreeValues(rows, cols, solution);
+                        functionValues = GetFunctionValues(rows, cols, solution);
+                        ResultFunctionF = functionValues[0];
+                        functionValues.RemoveAt(0);
+                        limitValues = GetLimitValues(rows, cols, solution);
 
-                        cols -= 2;
-                        rows -= 1;
+                        cols -= 1;
+                        rows -= 2;
 
                         solution.Clear();
-                        solution = GomoryMethod(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+                        solution = GomoryMethod(rows, cols, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
 
                         if (!solution.Any())
                         {
                             richTextBox2.Text += "Задача не имеет целочисленных решений. \r\n";
-                            richTextBox2.Width = 450;
                             this.Controls.Add(richTextBox2);
                         }
                         else
                         {
-                            richTextBox2.Text += "Решение задачи методом Гомори: нахождение целочисленного решения. \r\n";
                             cols = solution[0].Count();
                             rows = solution.Count();
                             bool intFlag = true;
@@ -799,11 +907,12 @@ namespace CourseWork
                             {
                                 richTextBox2.Text += "\r\n";
                                 richTextBox2.Text += "Полученный ответ является целочисленным. Нет необходимости применять метод Гомори. \r\n";
-                                richTextBox2.Width = 450;
                                 this.Controls.Add(richTextBox2);
                             }
                             else
                             {
+                                richTextBox2.Text += "Решение задачи методом Гомори: нахождение целочисленного решения. \r\n";
+
                                 DataGridView DGV2 = new DataGridView
                                 {
                                     Font = new Font("Microsoft Sans Serif", 11),
@@ -844,10 +953,6 @@ namespace CourseWork
                                         }
                                     }
                                 }
-
-                                int dgvWidth = DGV2.Columns.GetColumnsWidth(DataGridViewElementStates.Visible);
-                                int dgvHeight = DGV2.Rows.GetRowsHeight(DataGridViewElementStates.Visible);
-                                richTextBox2.Width = dgvWidth / 2 + 100;
 
                                 this.Controls.Add(richTextBox2);
                                 this.Controls.Add(DGV2);
