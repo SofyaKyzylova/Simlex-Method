@@ -21,7 +21,7 @@ namespace CourseWork
         List<List<double>> limitValues = new List<List<double>>();
         List<double> limitFreeValues = new List<double>();
         List<int> sign = new List<int>();
-        bool min = true;
+        bool max = true;
         bool isClosed = true;
 
         internal InputForm(int cols, int rows)
@@ -277,11 +277,11 @@ namespace CourseWork
 
                     string extremum = comboBoxMaxMin.Text;
                     if (extremum == "min")
-                        min = false;
+                        max = false;
 
                     if (isClosed)
                     {
-                        SimplexMethodSolution simplexMethodSolution = new SimplexMethodSolution(cols, rows, functionValues, limitValues, limitFreeValues, sign, min);
+                        SimplexMethodSolution simplexMethodSolution = new SimplexMethodSolution(cols, rows, functionValues, limitValues, limitFreeValues, sign, max);
                         simplexMethodSolution.Show(this);
                         isClosed = false;
                     }
