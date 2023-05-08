@@ -62,8 +62,39 @@ namespace CourseWork
         }
 
 
+        int FindColIndex(List<List<double>> limitValues, List<double> functionValues, int cols, int rowIndex)
+        {
+            int colIndex = -1;
+
+            for (int i = 0; i < cols; i++)
+            {
+                if (limitValues[rowIndex][i] < 0) 
+                {
+                    colIndex = i;
+                    break;
+                }
+            }
+
+            if (colIndex != cols - 1 && colIndex != -1)
+            {
+                for (int i = colIndex + 1; i < cols; i++)
+                {
+                    if (limitValues[rowIndex][i] < 0) 
+                    {
+                        if (Math.Round(Math.Abs(functionValues[i] / limitValues[rowIndex][i]), 6) < Math.Round(Math.Abs(functionValues[colIndex] / limitValues[rowIndex][colIndex]), 6))
+                        {
+                            colIndex = i;
+                        }
+                    }
+                }
+            }
+
+            return colIndex;
+        }
+
+
         List<List<double>> MakeSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
-            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool min)
+            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool max)
         {
             List<double> col = new List<double>();
             for (int i = 0; i < rows; i++)
@@ -76,7 +107,7 @@ namespace CourseWork
             List<double> col1 = new List<double>();
 
             col1.AddRange(limitFreeValues);
-            if (min)
+            if (max)
                 col1.Add(-ResultFunctionF);
             else
                 col1.Add(ResultFunctionF);
@@ -89,7 +120,7 @@ namespace CourseWork
                 {
                     col2.Add(limitValues[j][i]);
                 }
-                if (min)
+                if (max)
                     col2.Add(-functionValues[i]);
                 else
                     col2.Add(functionValues[i]);
@@ -102,7 +133,7 @@ namespace CourseWork
 
         List<List<double>> SimplexSolveF(int cols, int rows,
             List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes,
-            double ResultFunctionF, bool min)
+            double ResultFunctionF, bool max)
         {
             double resolvingElement;
             int colIndex;
@@ -126,18 +157,21 @@ namespace CourseWork
             {
                 if (negative)
                 {
-                    colIndex = functionValues.IndexOf(functionValues.Min()); 
                     rowIndex = negIndex;
+                    colIndex = FindColIndex(limitValues, functionValues, cols, rowIndex);
+                    if (colIndex == -1)
+                    {
+                        List<List<double>> empty = new List<List<double>>();
+                        return empty;
+                    }
                 }
                 else
                 {
                     colIndex = functionValues.IndexOf(functionValues.Max());
                     rowIndex = FindRowIndex(limitValues, limitFreeValues, rows, colIndex);
+                    if (rowIndex == -1)
+                        return solution;
                 }
-                
-                if (rowIndex == -1)
-                    return solution;
-                
 
                 resolvingElement = limitValues[rowIndex][colIndex];
                 basicValuesIndexes[rowIndex] = colIndex;
@@ -208,7 +242,7 @@ namespace CourseWork
                 }
             }
 
-            return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+            return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, max);
         }
 
         List<List<double>> NoIOR(int cols, int rows)
@@ -228,7 +262,7 @@ namespace CourseWork
 
         List<List<double>> SimplexFindIOR(int cols, int rows, 
             List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes, List<double> functionT,
-            double ResultFunctionT, int colsBeforeAdding, bool min)
+            double ResultFunctionT, int colsBeforeAdding, bool max)
         {
             double ResultFunctionF = 0;
             double resolvingElement;
@@ -318,12 +352,12 @@ namespace CourseWork
             }
 
             cols = colsBeforeAdding;
-            return SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+            return SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, max);
         }
 
 
         List<List<double>> SimplexMethod(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
-            List<double> limitFreeValues, List<int> sign, bool min)
+            List<double> limitFreeValues, List<int> sign, bool max)
         {
             List<int> basicValuesIndexes = new List<int>();
             List<double> functionT = new List<double>();
@@ -418,7 +452,7 @@ namespace CourseWork
                 ResultFunctionT += limitFreeValues[i];
             }
 
-            if (!min)
+            if (!max)
             {
                 for (int i = 0; i < cols; i++) 
                 {
@@ -426,7 +460,7 @@ namespace CourseWork
                 }
             }
 
-            return SimplexFindIOR(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, colsBeforeAdding, min);
+            return SimplexFindIOR(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, colsBeforeAdding, max);
         }
 
         List<double> GetLimitFreeValues(int rows, int cols, List<List<double>> solution)
@@ -446,10 +480,13 @@ namespace CourseWork
             return limitFreeValues;
         }
 
-        List<double> GetFunctionValues(int rows, int cols, List<List<double>> solution)
+        List<double> GetFunctionValues(int rows, int cols, bool max, List<List<double>> solution)
         {
             List<double> functionValues = new List<double>();
-            functionValues.Add(solution[1][cols - 1]);
+            if (max)
+                functionValues.Add(-solution[1][cols - 1]);
+            else
+                functionValues.Add(solution[1][cols - 1]);
 
             for (int i = 0; i < rows; i++)
             {
@@ -457,14 +494,17 @@ namespace CourseWork
                 {
                     if (i > 1 && j == cols - 1)
                     {
-                        functionValues.Add(solution[i][j]);
+                        if (max)
+                            functionValues.Add(-solution[i][j]);
+                        else
+                            functionValues.Add(solution[i][j]);
                     }
                 }
             }
             return functionValues;
         }
 
-        List<int>GetBasicValuesIndexes(int rows, int cols, List<List<double>> solution)
+        List<int> GetBasicValuesIndexes(int rows, int cols, List<List<double>> solution)
         {
             List<int> basicValues = new List<int>();
 
@@ -482,7 +522,7 @@ namespace CourseWork
             return basicValues;
         }
 
-        List<List<double>>GetLimitValues(int rows, int cols, List<List<double>> solution)
+        List<List<double>> GetLimitValues(int rows, int cols, List<List<double>> solution)
         {
             List<List<double>> limitValues = new List<List<double>>();
             List<List<double>> limitsAdd = new List<List<double>>();
@@ -561,12 +601,7 @@ namespace CourseWork
             List<double> fractions = new List<double>();
             for (int i = 0; i < rows; i++)
             {
-                if (Math.Round(limitFreeValues[i] - Math.Floor(limitFreeValues[i]), 6) != 0) //проверяем есть ли дробные части
-                {
-                    fractions.Add(limitFreeValues[i] - Math.Floor(limitFreeValues[i]));
-                }
-                else
-                    fractions.Add(0);
+                fractions.Add(limitFreeValues[i] - Math.Floor(limitFreeValues[i]));
             }
             return fractions;
         }
@@ -575,7 +610,7 @@ namespace CourseWork
         {
             for (int i = 0; i < rows; i++)
             {
-                if (fractions[i] != 0)
+                if (Math.Round(fractions[i], 6) != 0)
                 {
                     return true;
                 }
@@ -584,7 +619,7 @@ namespace CourseWork
         }
 
         List<List<double>> GomoryMethod(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
-            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool min)
+            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool max)
         {
             List<double> fractions = new List<double>();
             fractions = GetFractions(rows, limitFreeValues);
@@ -599,7 +634,7 @@ namespace CourseWork
             while (flag) 
             {
                 int maxFraction = MaxRowFractionIndex(limitValues, fractions, cols, rows);
-                if (maxFraction == 0)
+                if (maxFraction == -1)
                 {
                     List<List<double>> empty = new List<List<double>>();
                     return empty;  //если не нашлось ни одной строки с дробными значениями - ЦЕЛОЧИСЛЕННОГО РЕШЕНИЯ НЕТ
@@ -622,12 +657,17 @@ namespace CourseWork
                 limitFreeValues.Add((limitFreeValues[maxFraction] - Math.Floor(limitFreeValues[maxFraction])) * (-1)); //дробная часть свободного члена
                 limitValues.Add(rowFractions);
                 functionValues.Add(0);
-                basicValuesIndexes.Add(cols - 1); 
+                basicValuesIndexes.Add(cols); 
 
                 cols++;
                 rows++;
 
-                solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+                solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, max);
+                if (!solution.Any())
+                {
+                    List<List<double>> empty = new List<List<double>>();
+                    return empty;  //ЦЕЛОЧИСЛЕННОГО РЕШЕНИЯ НЕТ
+                }
                 cols = solution[0].Count();
                 rows = solution.Count();
 
@@ -639,7 +679,7 @@ namespace CourseWork
 
                 basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
                 limitFreeValues = GetLimitFreeValues(rows, cols, solution);
-                functionValues = GetFunctionValues(rows, cols, solution);
+                functionValues = GetFunctionValues(rows, cols, max, solution);
                 ResultFunctionF = functionValues[0];
                 functionValues.RemoveAt(0);
                 limitValues = GetLimitValues(rows, cols, solution);
@@ -657,7 +697,7 @@ namespace CourseWork
 
 
         internal SimplexMethodSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues, 
-            List<double> limitFreeValues, List<int> sign, bool min) 
+            List<double> limitFreeValues, List<int> sign, bool max) 
         {
             this.AutoSize = true;
             this.Text = "Решение";
@@ -706,7 +746,7 @@ namespace CourseWork
                             richTextBox1.Text += "+ ";
                 }
             }
-            if (min) 
+            if (max) 
                 richTextBox1.Text += " --> max \r\n";
             else 
                 richTextBox1.Text += " --> min \r\n";
@@ -752,7 +792,7 @@ namespace CourseWork
             
             richTextBox1.Text += "\r\n";
             richTextBox1.Text += "РЕШЕНИЕ: \r\n";
-            solution = SimplexMethod(cols, rows, functionValues, limitValues, limitFreeValues, sign, min);
+            solution = SimplexMethod(cols, rows, functionValues, limitValues, limitFreeValues, sign, max);
 
             if (!solution.Any())
             {
@@ -869,7 +909,6 @@ namespace CourseWork
                             richTextBox2.WordWrap = false;
                             richTextBox2.ScrollBars = RichTextBoxScrollBars.None;
 
-
                             functionValues.Clear();
                             limitValues.Clear();
                             limitFreeValues.Clear();
@@ -880,7 +919,7 @@ namespace CourseWork
 
                             basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
                             limitFreeValues = GetLimitFreeValues(rows, cols, solution);
-                            functionValues = GetFunctionValues(rows, cols, solution);
+                            functionValues = GetFunctionValues(rows, cols, max, solution);
                             ResultFunctionF = functionValues[0];
                             functionValues.RemoveAt(0);
                             limitValues = GetLimitValues(rows, cols, solution);
@@ -889,7 +928,7 @@ namespace CourseWork
                             rows -= 2;
 
                             solution.Clear();
-                            solution = GomoryMethod(rows, cols, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+                            solution = GomoryMethod(rows, cols, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, max);
 
                             if (!solution.Any())
                             {
