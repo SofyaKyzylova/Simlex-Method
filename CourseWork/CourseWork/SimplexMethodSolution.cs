@@ -92,6 +92,35 @@ namespace CourseWork
             return colIndex;
         }
 
+        int FindColIndex(List<List<double>> limitValues, List<double> limitFreeValues, List<double> functionValues, int rows)
+        {
+            List<double> func = new List<double>();
+            func.AddRange(functionValues);
+            int colIndex = -1;
+
+            while (func.Max() > 0)
+            {
+                colIndex = func.IndexOf(func.Max());
+                int rowIndex = FindRowIndex(limitValues, limitFreeValues, rows, colIndex);
+
+                if (rowIndex == -1)
+                {
+                    func[colIndex] = 0;
+                    colIndex = func.IndexOf(func.Max());
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (func.Max() <= 0)
+            {
+                colIndex = -1;
+            }
+
+            return colIndex;
+        }
 
         List<List<double>> MakeSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
             List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool max)
@@ -167,7 +196,9 @@ namespace CourseWork
                 }
                 else
                 {
-                    colIndex = functionValues.IndexOf(functionValues.Max());
+                    colIndex = FindColIndex(limitValues, limitFreeValues, functionValues, rows);
+                    if (colIndex == -1)
+                        return solution = NoIOR(cols, rows);
                     rowIndex = FindRowIndex(limitValues, limitFreeValues, rows, colIndex);
                     if (rowIndex == -1)
                         return solution;
@@ -272,8 +303,9 @@ namespace CourseWork
 
             while (!optimum)
             {
-                colIndex = functionT.IndexOf(functionT.Max());
-
+                colIndex = FindColIndex(limitValues, limitFreeValues, functionT, rows);
+                if (colIndex == -1)
+                    return solution = NoIOR(cols, rows);
                 rowIndex = FindRowIndex(limitValues, limitFreeValues, rows, colIndex);
                 if (rowIndex == -1)
                     return solution = NoIOR(cols, rows);
@@ -341,7 +373,6 @@ namespace CourseWork
                 }
                 solvingMatrix.Clear();
 
-                //проверяем план на оптимальность
                 optimum = IsOptimum(functionT, colsBeforeAdding);
             }
 
@@ -363,7 +394,9 @@ namespace CourseWork
             List<double> functionT = new List<double>();
 
             double ResultFunctionT = 0;
-            int colsBeforeAdding;
+            int colsBeforeAdding = cols;
+            int colsAdded = 0;
+            int countLess = 0;
 
             //если есть отрицательные b
             for (int i = 0; i < rows; i++)
@@ -385,6 +418,26 @@ namespace CourseWork
             //добавление доп переменных, если есть неравенства
             for (int i = 0; i < rows; i++)
             {
+                if (sign[i] == 2) // "<="
+                {
+                    for (int j = 0; j < rows; j++)
+                    {
+                        if (j == i)
+                            limitValues[j].Add(1);
+                        else
+                            limitValues[j].Add(0);
+                    }
+                    functionValues.Add(0);
+                    basicValuesIndexes.Add(cols);
+                    cols++;
+                    colsAdded++;
+                    countLess++;
+                }
+            }
+
+            //добавление доп переменных, если есть неравенства
+            for (int i = 0; i < rows; i++)
+            {
                 if (sign[i] == 0) // ">="
                 {
                     for (int j = 0; j < rows; j++)
@@ -396,41 +449,27 @@ namespace CourseWork
                     }
                     functionValues.Add(0);
                     cols++;
+                    colsAdded++;
                 }
             }
 
-            //добавление доп переменных, если есть неравенства
-            for (int i = 0; i < rows; i++)
+            if (countLess != rows)
             {
-                if (sign[i] == 2) // "<="
+                //добавление доп переменных для двухэтапного метода
+                basicValuesIndexes.Clear();
+                for (int i = 0; i < rows; i++)
                 {
                     for (int j = 0; j < rows; j++)
                     {
                         if (j == i)
-                            limitValues[j].Add(1);
+                            limitValues[i].Add(1);
                         else
-                            limitValues[j].Add(0);
+                            limitValues[i].Add(0);
                     }
+                    basicValuesIndexes.Add(cols);  //индексы базисных переменных
                     functionValues.Add(0);
                     cols++;
                 }
-            }
-
-            colsBeforeAdding = cols;
-
-            //добавление доп переменных для двухэтапного метода
-            for (int i = 0; i < rows; i++)
-            {
-                for (int j = 0; j < rows; j++)
-                {
-                    if (j == i)
-                        limitValues[i].Add(1);
-                    else
-                        limitValues[i].Add(0);
-                }
-                basicValuesIndexes.Add(cols);  //индексы базисных переменных
-                functionValues.Add(0);
-                cols++;
             }
 
 
@@ -460,7 +499,7 @@ namespace CourseWork
                 }
             }
 
-            return SimplexFindIOR(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, colsBeforeAdding, max);
+            return SimplexFindIOR(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, colsBeforeAdding + colsAdded, max);
         }
 
         List<double> GetLimitFreeValues(int rows, int cols, List<List<double>> solution)
@@ -601,7 +640,16 @@ namespace CourseWork
             List<double> fractions = new List<double>();
             for (int i = 0; i < rows; i++)
             {
-                fractions.Add(limitFreeValues[i] - Math.Floor(limitFreeValues[i]));
+                double fract = limitFreeValues[i] - Math.Floor(limitFreeValues[i]);
+                if (Math.Round((1.0 - fract), 6) == 0) 
+                {
+                    fractions.Add(0);
+                }
+                else
+                {
+                    fractions.Add(fract);
+                }
+
             }
             return fractions;
         }
@@ -722,28 +770,42 @@ namespace CourseWork
 
 
             richTextBox1.Text += "Целевая функция: \r\n";
+
+            int funcNum = -1;
+            for (int i = 0; i < cols; i++)
+            {
+                if (functionValues[i] != 0)
+                {
+                    funcNum = i;
+                    break;
+                }
+            }
+
             for (int j = 0; j < cols; j++)
             {
                 num = j;
-                if (functionValues[j] == 0)
+                if (j >= funcNum)
                 {
-                    if (j != cols - 1)
+                    if (functionValues[j] == 0)
                     {
-                        if (functionValues[j + 1] > 0)
-                            richTextBox1.Text += "+ ";
+                        if (j != cols - 1)
+                        {
+                            if (functionValues[j + 1] > 0)
+                                richTextBox1.Text += "+ ";
+                        }
                     }
-                }
-                else
-                {
-                    if (functionValues[j] == 1)
-                        richTextBox1.Text += "x" + ++num + " ";
-                    else if (functionValues[j] == -1)
-                        richTextBox1.Text += "-x" + ++num + " ";
                     else
-                        richTextBox1.Text += functionValues[j].ToString() + "x" + ++num + " ";
-                    if (j != cols - 1)
-                        if (functionValues[j + 1] > 0)
-                            richTextBox1.Text += "+ ";
+                    {
+                        if (functionValues[j] == 1)
+                            richTextBox1.Text += "x" + ++num + " ";
+                        else if (functionValues[j] == -1)
+                            richTextBox1.Text += "-x" + ++num + " ";
+                        else
+                            richTextBox1.Text += functionValues[j].ToString() + "x" + ++num + " ";
+                        if (j != cols - 1)
+                            if (functionValues[j + 1] > 0)
+                                richTextBox1.Text += "+ ";
+                    }
                 }
             }
             if (max) 
@@ -755,30 +817,43 @@ namespace CourseWork
             richTextBox1.Text += "\r\n";
             richTextBox1.Text += "Ограничения: \r\n";
             num = 0;
+            funcNum = -1;
+
             for (int i = 0; i < rows; i++)
             {
+                for (int k = 0; k < cols; k++)
+                {
+                    if (limitValues[i][k] != 0)
+                    {
+                        funcNum = k;
+                        break;
+                    }
+                }
                 for (int j = 0; j < cols; j++)
                 {
                     num = j;
-                    if (limitValues[i][j] == 0)
+                    if (j >= funcNum)
                     {
-                        if(j != cols - 1)
+                        if (limitValues[i][j] == 0)
                         {
-                            if (limitValues[i][j + 1] > 0)
-                                richTextBox1.Text += "+ ";
+                            if (j != cols - 1)
+                            {
+                                if (limitValues[i][j + 1] > 0)
+                                    richTextBox1.Text += "+ ";
+                            }
                         }
-                    }
-                    else
-                    {
-                        if(limitValues[i][j] == 1)
-                            richTextBox1.Text += "x" + ++num + " ";
-                        else if (limitValues[i][j] == -1)
-                            richTextBox1.Text += "-x" + ++num + " ";
                         else
-                            richTextBox1.Text += limitValues[i][j].ToString() + "x" + ++num + " ";
-                        if (j != cols - 1)
-                            if(limitValues[i][j + 1] > 0)
-                                richTextBox1.Text += "+ ";
+                        {
+                            if (limitValues[i][j] == 1)
+                                richTextBox1.Text += "x" + ++num + " ";
+                            else if (limitValues[i][j] == -1)
+                                richTextBox1.Text += "-x" + ++num + " ";
+                            else
+                                richTextBox1.Text += limitValues[i][j].ToString() + "x" + ++num + " ";
+                            if (j != cols - 1)
+                                if (limitValues[i][j + 1] > 0)
+                                    richTextBox1.Text += "+ ";
+                        }
                     }
                 }
                 if(sign[i] == 0)
