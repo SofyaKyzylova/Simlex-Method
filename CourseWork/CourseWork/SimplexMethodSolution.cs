@@ -25,8 +25,7 @@ namespace CourseWork
         {
             for (int i = 0; i < cols; i++)
             {
-                double num = functionValues[i];
-                if (Math.Round(num, 6) > 0) 
+                if (Math.Round(functionValues[i], 6) > 0) 
                 {
                     return false;
                 }
@@ -62,13 +61,13 @@ namespace CourseWork
         }
 
 
-        int FindColIndex(List<List<double>> limitValues, List<double> functionValues, int cols, int rowIndex)
+        int FindColIndexGomory(List<List<double>> limitValues, List<double> functionValues, int cols, int rowIndex, int col)
         {
             int colIndex = -1;
 
             for (int i = 0; i < cols; i++)
             {
-                if (limitValues[rowIndex][i] < 0) 
+                if (limitValues[rowIndex][i] < 0 && i != col) 
                 {
                     colIndex = i;
                     break;
@@ -79,7 +78,7 @@ namespace CourseWork
             {
                 for (int i = colIndex + 1; i < cols; i++)
                 {
-                    if (limitValues[rowIndex][i] < 0) 
+                    if (limitValues[rowIndex][i] < 0 && i != col) 
                     {
                         if (Math.Round(Math.Abs(functionValues[i] / limitValues[rowIndex][i]), 6) < Math.Round(Math.Abs(functionValues[colIndex] / limitValues[rowIndex][colIndex]), 6))
                         {
@@ -123,7 +122,7 @@ namespace CourseWork
         }
 
         List<List<double>> MakeSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
-            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool max)
+            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool min)
         {
             List<double> col = new List<double>();
             for (int i = 0; i < rows; i++)
@@ -136,7 +135,7 @@ namespace CourseWork
             List<double> col1 = new List<double>();
 
             col1.AddRange(limitFreeValues);
-            if (max)
+            if (!min)
                 col1.Add(-ResultFunctionF);
             else
                 col1.Add(ResultFunctionF);
@@ -149,7 +148,7 @@ namespace CourseWork
                 {
                     col2.Add(limitValues[j][i]);
                 }
-                if (max)
+                if (!min)
                     col2.Add(-functionValues[i]);
                 else
                     col2.Add(functionValues[i]);
@@ -162,7 +161,7 @@ namespace CourseWork
 
         List<List<double>> SimplexSolveF(int cols, int rows,
             List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes,
-            double ResultFunctionF, bool max)
+            double ResultFunctionF, bool min)
         {
             double resolvingElement;
             int colIndex;
@@ -187,7 +186,7 @@ namespace CourseWork
                 if (negative)
                 {
                     rowIndex = negIndex;
-                    colIndex = FindColIndex(limitValues, functionValues, cols, rowIndex);
+                    colIndex = FindColIndexGomory(limitValues, functionValues, cols, rowIndex, basicValuesIndexes.Last());
                     if (colIndex == -1)
                     {
                         List<List<double>> empty = new List<List<double>>();
@@ -273,7 +272,7 @@ namespace CourseWork
                 }
             }
 
-            return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, max);
+            return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
         }
 
         List<List<double>> NoIOR(int cols, int rows)
@@ -293,7 +292,7 @@ namespace CourseWork
 
         List<List<double>> SimplexFindIOR(int cols, int rows, 
             List<double> functionValues, List<List<double>> limitValues, List<double> limitFreeValues, List<int> basicValuesIndexes, List<double> functionT,
-            double ResultFunctionT, int colsBeforeAdding, bool max)
+            double ResultFunctionT, int colsBeforeAdding, bool min)
         {
             double ResultFunctionF = 0;
             double resolvingElement;
@@ -383,12 +382,12 @@ namespace CourseWork
             }
 
             cols = colsBeforeAdding;
-            return SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, max);
+            return SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
         }
 
 
         List<List<double>> SimplexMethod(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
-            List<double> limitFreeValues, List<int> sign, bool max)
+            List<double> limitFreeValues, List<int> sign, bool min)
         {
             List<int> basicValuesIndexes = new List<int>();
             List<double> functionT = new List<double>();
@@ -491,7 +490,7 @@ namespace CourseWork
                 ResultFunctionT += limitFreeValues[i];
             }
 
-            if (!max)
+            if (min)
             {
                 for (int i = 0; i < cols; i++) 
                 {
@@ -499,7 +498,7 @@ namespace CourseWork
                 }
             }
 
-            return SimplexFindIOR(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, colsBeforeAdding + colsAdded, max);
+            return SimplexFindIOR(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, functionT, ResultFunctionT, colsBeforeAdding + colsAdded, min);
         }
 
         List<double> GetLimitFreeValues(int rows, int cols, List<List<double>> solution)
@@ -515,14 +514,13 @@ namespace CourseWork
                     }
                 }
             }
-
             return limitFreeValues;
         }
 
-        List<double> GetFunctionValues(int rows, int cols, bool max, List<List<double>> solution)
+        List<double> GetFunctionValues(int rows, int cols, bool min, List<List<double>> solution)
         {
             List<double> functionValues = new List<double>();
-            if (max)
+            if (!min)
                 functionValues.Add(-solution[1][cols - 1]);
             else
                 functionValues.Add(solution[1][cols - 1]);
@@ -533,7 +531,7 @@ namespace CourseWork
                 {
                     if (i > 1 && j == cols - 1)
                     {
-                        if (max)
+                        if (!min)
                             functionValues.Add(-solution[i][j]);
                         else
                             functionValues.Add(solution[i][j]);
@@ -667,7 +665,7 @@ namespace CourseWork
         }
 
         List<List<double>> GomoryMethod(int cols, int rows, List<double> functionValues, List<List<double>> limitValues,
-            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool max)
+            List<double> limitFreeValues, List<int> basicValuesIndexes, double ResultFunctionF, bool min)
         {
             List<double> fractions = new List<double>();
             fractions = GetFractions(rows, limitFreeValues);
@@ -710,7 +708,7 @@ namespace CourseWork
                 cols++;
                 rows++;
 
-                solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, max);
+                solution = SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
                 if (!solution.Any())
                 {
                     List<List<double>> empty = new List<List<double>>();
@@ -727,7 +725,7 @@ namespace CourseWork
 
                 basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
                 limitFreeValues = GetLimitFreeValues(rows, cols, solution);
-                functionValues = GetFunctionValues(rows, cols, max, solution);
+                functionValues = GetFunctionValues(rows, cols, min, solution);
                 ResultFunctionF = functionValues[0];
                 functionValues.RemoveAt(0);
                 limitValues = GetLimitValues(rows, cols, solution);
@@ -745,7 +743,7 @@ namespace CourseWork
 
 
         internal SimplexMethodSolution(int cols, int rows, List<double> functionValues, List<List<double>> limitValues, 
-            List<double> limitFreeValues, List<int> sign, bool max) 
+            List<double> limitFreeValues, List<int> sign, bool min) 
         {
             this.AutoSize = true;
             this.Text = "Решение";
@@ -808,10 +806,10 @@ namespace CourseWork
                     }
                 }
             }
-            if (max) 
-                richTextBox1.Text += " --> max \r\n";
-            else 
+            if (min) 
                 richTextBox1.Text += " --> min \r\n";
+            else 
+                richTextBox1.Text += " --> max \r\n";
 
 
             richTextBox1.Text += "\r\n";
@@ -867,7 +865,7 @@ namespace CourseWork
             
             richTextBox1.Text += "\r\n";
             richTextBox1.Text += "РЕШЕНИЕ: \r\n";
-            solution = SimplexMethod(cols, rows, functionValues, limitValues, limitFreeValues, sign, max);
+            solution = SimplexMethod(cols, rows, functionValues, limitValues, limitFreeValues, sign, min);
 
             if (!solution.Any())
             {
@@ -904,7 +902,7 @@ namespace CourseWork
                     DataGridView DGV = new DataGridView
                     {
                         Font = new Font("Microsoft Sans Serif", 11),
-                        Location = new Point(10, richTextBox1.Height + 120),
+                        Location = new Point(10, richTextBox1.Height + 170),
                         ReadOnly = true,
                         ColumnCount = rows,
                         RowCount = cols
@@ -954,7 +952,7 @@ namespace CourseWork
 
                     Button intSolutionButton = new Button
                     {
-                        Location = new Point(10, richTextBox1.Height + dgv_height + 200),
+                        Location = new Point(10, richTextBox1.Height + dgv_height + 250),
                         Size = new Size(190, 50),
                         Name = "ButtonCount",
                         Font = new Font("Microsoft Sans Serif", 11),
@@ -971,7 +969,7 @@ namespace CourseWork
                         {
                             RichTextBox richTextBox2 = new RichTextBox
                             {
-                                Location = new Point(10, richTextBox1.Height + dgv_height + 180),
+                                Location = new Point(10, richTextBox1.Height + dgv_height + 230),
                                 Font = new Font("Microsoft Sans Serif", 11),
                                 ReadOnly = true
                             };
@@ -994,7 +992,7 @@ namespace CourseWork
 
                             basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
                             limitFreeValues = GetLimitFreeValues(rows, cols, solution);
-                            functionValues = GetFunctionValues(rows, cols, max, solution);
+                            functionValues = GetFunctionValues(rows, cols, min, solution);
                             ResultFunctionF = functionValues[0];
                             functionValues.RemoveAt(0);
                             limitValues = GetLimitValues(rows, cols, solution);
@@ -1003,7 +1001,7 @@ namespace CourseWork
                             rows -= 2;
 
                             solution.Clear();
-                            solution = GomoryMethod(rows, cols, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, max);
+                            solution = GomoryMethod(rows, cols, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
 
                             if (!solution.Any())
                             {
@@ -1041,7 +1039,7 @@ namespace CourseWork
                                     DataGridView DGV2 = new DataGridView
                                     {
                                         Font = new Font("Microsoft Sans Serif", 11),
-                                        Location = new Point(10, richTextBox1.Height + dgv_height + richTextBox2.Height + 140),
+                                        Location = new Point(10, richTextBox1.Height + dgv_height + richTextBox2.Height + 190),
                                         ReadOnly = true,
                                         ColumnCount = rows,
                                         RowCount = cols
