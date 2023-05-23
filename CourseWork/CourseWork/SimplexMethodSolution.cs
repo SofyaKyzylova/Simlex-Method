@@ -26,9 +26,7 @@ namespace CourseWork
             for (int i = 0; i < cols; i++)
             {
                 if (Math.Round(functionValues[i], 6) > 0) 
-                {
                     return false;
-                }
             }
             return true;
         }
@@ -108,15 +106,11 @@ namespace CourseWork
                     colIndex = func.IndexOf(func.Max());
                 }
                 else
-                {
                     break;
-                }
             }
 
             if (func.Max() <= 0)
-            {
                 colIndex = -1;
-            }
 
             return colIndex;
         }
@@ -238,9 +232,7 @@ namespace CourseWork
                     for (int j = 0; j < cols; j++)
                     {
                         if (i == rowIndex)
-                        {
                             rowSolution.Add(limitValues[i][j]);
-                        }
                         else
                             rowSolution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j]);
                     }
@@ -354,9 +346,7 @@ namespace CourseWork
                     for (int j = 0; j < cols; j++)
                     {
                         if (i == rowIndex)
-                        {
                             rowSolution.Add(limitValues[i][j]);
-                        }
                         else
                             rowSolution.Add(limitValues[i][j] - limitValues[i][colIndex] * limitValues[rowIndex][j]);
                     }
@@ -382,7 +372,8 @@ namespace CourseWork
             }
 
             cols = colsBeforeAdding;
-            return SimplexSolveF(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+
+            return MakeSolution(cols, rows, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
         }
 
 
@@ -640,13 +631,9 @@ namespace CourseWork
             {
                 double fract = limitFreeValues[i] - Math.Floor(limitFreeValues[i]);
                 if (Math.Round((1.0 - fract), 6) == 0) 
-                {
                     fractions.Add(0);
-                }
                 else
-                {
                     fractions.Add(fract);
-                }
 
             }
             return fractions;
@@ -657,9 +644,7 @@ namespace CourseWork
             for (int i = 0; i < rows; i++)
             {
                 if (Math.Round(fractions[i], 6) != 0)
-                {
                     return true;
-                }
             }
             return false;
         }
@@ -748,6 +733,7 @@ namespace CourseWork
             this.AutoSize = true;
             this.Text = "Решение";
             this.StartPosition = FormStartPosition.CenterScreen;
+            this.AutoScroll = true;
 
             int num = 0;
 
@@ -864,65 +850,160 @@ namespace CourseWork
             }
             
             richTextBox1.Text += "\r\n";
-            richTextBox1.Text += "РЕШЕНИЕ: \r\n";
-            solution = SimplexMethod(cols, rows, functionValues, limitValues, limitFreeValues, sign, min);
+            richTextBox1.Text += "ИОР: \r\n";
 
-            if (!solution.Any())
+            solution = SimplexMethod(cols, rows, functionValues, limitValues, limitFreeValues, sign, min);
+            cols = solution[0].Count();
+            rows = solution.Count();
+            bool flag = true;
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    if (solution[i][j] != 0)
+                    {
+                        flag = false;
+                        break;
+                    }
+                }
+            }
+
+            if (flag)
             {
                 richTextBox1.Text += "\r\n";
-                richTextBox1.Text += "Задача не имеет оптимальных решений. \r\n";
+                richTextBox1.Text += "Задача не имеет ИОР. Решений нет. \r\n";
                 this.Controls.Add(richTextBox1);
             }
             else
             {
-                cols = solution[0].Count();
-                rows = solution.Count();
-                bool flag = true;
-
-                for(int i = 0; i < rows; i++)
+                DataGridView dataGV = new DataGridView
                 {
-                    for(int j = 0; j < cols; j++)
+                    Font = new Font("Microsoft Sans Serif", 11),
+                    Location = new Point(10, richTextBox1.Height + 140),
+                    ReadOnly = true,
+                    ColumnCount = rows,
+                    RowCount = cols
+                };
+                DataGridViewElementStates states = DataGridViewElementStates.None;
+                dataGV.ScrollBars = ScrollBars.None;
+                var totalHeight = dataGV.Rows.GetRowsHeight(states) + dataGV.ColumnHeadersHeight;
+                totalHeight += dataGV.Rows.Count * 4 + 10;
+
+                for (int i = 0; i < rows; i++)
+                {
+                    dataGV.Columns[i].Width = 70;
+                }
+
+                var totalWidth = (rows + 1) * 70;
+                dataGV.ClientSize = new Size(totalWidth, totalHeight);
+
+                dataGV.Columns[0].HeaderText = "Базис";
+                dataGV.Columns[1].HeaderText = "Св. чл.";
+                int k = 1;
+                for (int i = 2; i < rows; i++)
+                {
+                    dataGV.Columns[i].HeaderText = "X" + k.ToString();
+                    k++;
+                }
+
+                for (int i = 0; i < cols; i++)
+                {
+                    for (int j = 0; j < rows; j++)
                     {
-                        if (solution[i][j] != 0)
+                        if (i < cols - 1 && j == 0)
                         {
-                            flag = false;
-                            break;
-                        }                            
+                            dataGV.Rows[i].Cells[j].Value = "X" + Math.Round(solution[j][i], 3).ToString();
+                        }
+                        else if (i == cols - 1 && j == 0)
+                        {
+                            dataGV.Rows[i].Cells[j].Value = "F";
+                        }
+                        else
+                        {
+                            dataGV.Rows[i].Cells[j].Value = Math.Round(solution[j][i], 3).ToString();
+                        }
                     }
                 }
 
-                if (flag)
+                this.Controls.Add(richTextBox1);
+                this.Controls.Add(dataGV);
+
+                int dgv_height = dataGV.Rows.GetRowsHeight(DataGridViewElementStates.Visible);
+                
+                RichTextBox richTextBoxF = new RichTextBox
                 {
-                    richTextBox1.Text += "\r\n";
-                    richTextBox1.Text += "Задача не имеет ИОР. Решений нет. \r\n";
-                    this.Controls.Add(richTextBox1);
+                    Location = new Point(10, richTextBox1.Height + dgv_height + 200),
+                    Font = new Font("Microsoft Sans Serif", 11),
+                    ReadOnly = true
+                };
+                richTextBoxF.ContentsResized += (object senderRichTextBox, ContentsResizedEventArgs e) =>
+                {
+                    var richTextBox = (RichTextBox)senderRichTextBox;
+                    richTextBox.Height = e.NewRectangle.Height;
+                };
+                richTextBoxF.Width = 700;
+                richTextBoxF.WordWrap = false;
+                richTextBoxF.ScrollBars = RichTextBoxScrollBars.None;
+
+
+                functionValues.Clear();
+                limitValues.Clear();
+                limitFreeValues.Clear();
+
+                List<int> basicValuesIndexes = new List<int>();
+                double ResultFunctionF = solution[1][cols - 1];
+
+                basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
+                limitFreeValues = GetLimitFreeValues(rows, cols, solution);
+                functionValues = GetFunctionValues(rows, cols, min, solution);
+                ResultFunctionF = functionValues[0];
+                functionValues.RemoveAt(0);
+                limitValues = GetLimitValues(rows, cols, solution);
+
+                cols -= 1;
+                rows -= 2;
+
+                solution.Clear();
+                solution = SimplexSolveF(rows, cols, functionValues, limitValues, limitFreeValues, basicValuesIndexes, ResultFunctionF, min);
+
+                if (!solution.Any())
+                {
+                    richTextBoxF.Text += "\r\n";
+                    richTextBoxF.Text += "Задача не имеет оптимальных решений. \r\n";
+                    this.Controls.Add(richTextBoxF);
                 }
                 else
                 {
+                    richTextBoxF.Text += "РЕШЕНИЕ: \r\n";
+
+                    cols = solution[0].Count();
+                    rows = solution.Count();
+
                     DataGridView DGV = new DataGridView
                     {
                         Font = new Font("Microsoft Sans Serif", 11),
-                        Location = new Point(10, richTextBox1.Height + 170),
+                        Location = new Point(10, richTextBox1.Height + dgv_height + richTextBoxF.Height + 150),
                         ReadOnly = true,
                         ColumnCount = rows,
                         RowCount = cols
                     };
-                    DataGridViewElementStates states = DataGridViewElementStates.None;
+                    DataGridViewElementStates state = DataGridViewElementStates.None;
                     DGV.ScrollBars = ScrollBars.None;
-                    var totalHeight = DGV.Rows.GetRowsHeight(states) + DGV.ColumnHeadersHeight;
-                    totalHeight += DGV.Rows.Count * 4 + 10;  
+                    var totalHeight2 = DGV.Rows.GetRowsHeight(state) + DGV.ColumnHeadersHeight;
+                    totalHeight2 += DGV.Rows.Count * 4 + 10;
 
-                    for(int i = 0; i < rows; i++)
+                    for (int i = 0; i < rows; i++)
                     {
                         DGV.Columns[i].Width = 70;
                     }
 
-                    var totalWidth = (rows + 1) * 70;
-                    DGV.ClientSize = new Size(totalWidth, totalHeight);
+                    var totalWidth2 = (rows + 1) * 70;
+                    DGV.ClientSize = new Size(totalWidth2, totalHeight2);
 
                     DGV.Columns[0].HeaderText = "Базис";
                     DGV.Columns[1].HeaderText = "Св. чл.";
-                    int k = 1;
+                    k = 1;
                     for (int i = 2; i < rows; i++)
                     {
                         DGV.Columns[i].HeaderText = "X" + k.ToString();
@@ -948,20 +1029,18 @@ namespace CourseWork
                         }
                     }
 
-                    int dgv_height = DGV.Rows.GetRowsHeight(DataGridViewElementStates.Visible);
 
                     Button intSolutionButton = new Button
                     {
-                        Location = new Point(10, richTextBox1.Height + dgv_height + 250),
+                        Location = new Point(10, richTextBox1.Height + 2 * dgv_height + richTextBoxF.Height + 220),
                         Size = new Size(190, 50),
                         Name = "ButtonCount",
                         Font = new Font("Microsoft Sans Serif", 11),
                         Text = "Найти целочисленное решение"
                     };
-                    this.Controls.Add(richTextBox1);
+                    this.Controls.Add(richTextBoxF);
                     this.Controls.Add(DGV);
                     this.Controls.Add(intSolutionButton);
-
 
                     intSolutionButton.Click += (sender, eventArgs) =>
                     {
@@ -969,7 +1048,7 @@ namespace CourseWork
                         {
                             RichTextBox richTextBox2 = new RichTextBox
                             {
-                                Location = new Point(10, richTextBox1.Height + dgv_height + 230),
+                                Location = new Point(10, richTextBox1.Height + 2 * dgv_height + richTextBoxF.Height + 250),
                                 Font = new Font("Microsoft Sans Serif", 11),
                                 ReadOnly = true
                             };
@@ -985,10 +1064,6 @@ namespace CourseWork
                             functionValues.Clear();
                             limitValues.Clear();
                             limitFreeValues.Clear();
-
-                            List<int> basicValuesIndexes = new List<int>();
-                            List<List<double>> limitsAdd = new List<List<double>>();
-                            double ResultFunctionF = solution[1][cols - 1];
 
                             basicValuesIndexes = GetBasicValuesIndexes(rows, cols, solution);
                             limitFreeValues = GetLimitFreeValues(rows, cols, solution);
@@ -1039,7 +1114,7 @@ namespace CourseWork
                                     DataGridView DGV2 = new DataGridView
                                     {
                                         Font = new Font("Microsoft Sans Serif", 11),
-                                        Location = new Point(10, richTextBox1.Height + dgv_height + richTextBox2.Height + 190),
+                                        Location = new Point(10, richTextBox1.Height + 2 * dgv_height + richTextBoxF.Height + richTextBox2.Height + 210),
                                         ReadOnly = true,
                                         ColumnCount = rows,
                                         RowCount = cols
@@ -1104,9 +1179,9 @@ namespace CourseWork
                              MessageBoxOptions.DefaultDesktopOnly);
                         }
                     };
-                    
-                }                
-            }
+                }
+
+                }   
         }
 
     }
